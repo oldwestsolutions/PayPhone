@@ -3,14 +3,184 @@
 @tailwind utilities;
 
 :root {
-  --accent: #c9a227;
+  --navy: #0c1a2e;
+  --cream: #f6f3ec;
+  --copper: #b87333;
+  --crimson: #b91c3c;
 }
 
-html,
-body {
-  height: 100%;
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 body {
-  @apply bg-surface text-zinc-100 antialiased;
+  @apply bg-cream text-navy antialiased font-sans;
+  overflow-x: hidden;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-crimson px-6 py-3 text-sm font-semibold uppercase tracking-corporate text-white transition hover:bg-crimson-bright focus:outline-none focus:ring-2 focus:ring-crimson/40 focus:ring-offset-2 focus:ring-offset-cream;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-navy/20 bg-white px-6 py-3 text-sm font-semibold uppercase tracking-corporate text-navy transition hover:border-navy/40 hover:bg-cream-warm focus:outline-none focus:ring-2 focus:ring-navy/20;
+  }
+
+  .btn-ghost-light {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-corporate text-white transition hover:bg-white/10;
+  }
+
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-copper;
+  }
+
+  .heading-display {
+    @apply font-display font-light tracking-tight text-navy;
+  }
+
+  .rule-gold {
+    @apply h-px w-16 bg-copper-shine;
+  }
+
+  .card-luxury {
+    @apply rounded-2xl border border-navy/10 bg-white shadow-card transition hover:shadow-luxury;
+  }
+
+  .card-3d {
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+  }
+
+  .nav-link {
+    @apply text-sm text-slate-uk transition hover:text-navy;
+  }
+
+  .nav-link-active {
+    @apply text-sm font-medium text-navy;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .scene-root {
+    isolation: isolate;
+  }
+
+  .scene-stage {
+    transform-style: preserve-3d;
+  }
+
+  .scene-card-3d {
+    transform-style: preserve-3d;
+    transform: rotateX(6deg) rotateY(-12deg);
+  }
+
+  .scene-grid {
+    background-image: linear-gradient(
+        rgba(184, 115, 51, 0.12) 1px,
+        transparent 1px
+      ),
+      linear-gradient(90deg, rgba(184, 115, 51, 0.12) 1px, transparent 1px);
+    background-size: 48px 48px;
+    transform: rotateX(72deg) translateY(20%);
+    transform-origin: center top;
+  }
+
+  .scene-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid rgba(212, 165, 116, 0.25);
+    animation: scene-spin 40s linear infinite;
+  }
+
+  .scene-ring-1 {
+    width: min(90vw, 520px);
+    height: min(90vw, 520px);
+    animation-duration: 48s;
+  }
+
+  .scene-ring-2 {
+    width: min(70vw, 380px);
+    height: min(70vw, 380px);
+    border-color: rgba(185, 28, 60, 0.2);
+    animation-direction: reverse;
+    animation-duration: 32s;
+  }
+
+  .scene-ring-3 {
+    width: min(50vw, 260px);
+    height: min(50vw, 260px);
+    animation-duration: 24s;
+  }
+
+  .scene-glow {
+    background: radial-gradient(
+      ellipse 80% 60% at 70% 20%,
+      rgba(184, 115, 51, 0.2),
+      transparent 70%
+    );
+  }
+}
+
+@keyframes blockFloat {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(0, -14px, 0);
+  }
+}
+
+@keyframes scene-spin {
+  from {
+    transform: rotateX(65deg) rotateZ(0deg);
+  }
+  to {
+    transform: rotateX(65deg) rotateZ(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-ring {
+    animation: none;
+  }
+  .scene-card-3d {
+    transform: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .scene-ring-1 {
+    width: 120vw;
+    height: 120vw;
+    opacity: 0.5;
+  }
+  .scene-card-3d {
+    transform: rotateX(4deg) rotateY(-6deg);
+  }
+}
+
+.payphone-grille {
+  background-image: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3px,
+      rgba(12, 26, 46, 0.04) 3px,
+      rgba(12, 26, 46, 0.04) 4px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      rgba(12, 26, 46, 0.04) 3px,
+      rgba(12, 26, 46, 0.04) 4px
+    );
 }

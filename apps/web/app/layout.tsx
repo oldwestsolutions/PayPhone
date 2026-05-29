@@ -1,15 +1,23 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/react";
+import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google";
 import "./globals.css";
-import { IdentityProvider } from "@/components/IdentityProvider";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
+import { defaultMetadata, jsonLdOrganization } from "@/lib/seo";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const cormorant = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600"],
+  variable: "--font-cormorant",
+});
 
-export const metadata: Metadata = {
-  title: "payphone.cc",
-  description:
-    "DID-authenticated WebRTC signaling and trustless settlement for verified marketplaces.",
-};
+const sourceSans = Source_Sans_3({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-source",
+});
+
+export const metadata = defaultMetadata;
 
 export default function RootLayout({
   children,
@@ -17,34 +25,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`${inter.variable} font-sans min-h-screen`}>
-        <IdentityProvider>
-          <div className="min-h-screen flex flex-col">
-            <header className="border-b border-zinc-800/80 bg-black/40 backdrop-blur-sm">
-              <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between gap-4">
-                <a href="/" className="text-lg tracking-tight font-semibold">
-                  payphone<span className="text-accent">.cc</span>
-                </a>
-                <nav className="flex gap-4 text-sm text-zinc-400">
-                  <a className="hover:text-zinc-100" href="/">
-                    Marketplace
-                  </a>
-                  <a className="hover:text-zinc-100" href="/dashboard">
-                    Dashboard
-                  </a>
-                </nav>
-              </div>
-            </header>
-            <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-8">
-              {children}
-            </main>
-            <footer className="border-t border-zinc-800/80 py-6 text-center text-xs text-zinc-500">
-              Old West Solutions LLC — signaling only; media is peer‑to‑peer
-              encrypted.
-            </footer>
-          </div>
-        </IdentityProvider>
+    <html lang="en-US" className={`${cormorant.variable} ${sourceSans.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrganization) }}
+        />
+      </head>
+      <body className="min-h-screen flex flex-col">
+        <SiteHeader />
+        <main className="flex-1">{children}</main>
+        <SiteFooter />
+        <Analytics />
       </body>
     </html>
   );
