@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "build:web": "npm --prefix ../.. run build -w @payphone/web",
+    "build:web": "npm --prefix ../.. exec -w @payphone/web -- next build",
     "start": "node dist/index.js"
   },
   "dependencies": {
