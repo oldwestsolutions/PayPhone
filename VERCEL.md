@@ -26,4 +26,4 @@ Still supported via stub `apps/api/package.json` + `apps/api/vercel.json`. Build
 
 ## Repo root deploy
 
-If **Root Directory** is empty (repository root), use root `vercel.json` (`outputDirectory`: `apps/web/out`).
+If **Root Directory** is empty (repository root), set **Output Directory** in the Vercel UI to `apps/web/out` (do not use `apps/web/out` when Root Directory is already `apps/web` — that doubles the path).
