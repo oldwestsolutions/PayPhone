@@ -4,29 +4,23 @@ export const site = {
   name: "payphone.cc",
   brand: "Payphone",
   domain: "payphone.cc",
-  tagline: "Verified-identity comms microservice",
+  tagline: "Sovereign Communication Services",
   legalName: "Old West Solutions LLC",
   whitepaperVersion: "1.0",
   registeredOffice: "1010 Pine Street, St. Louis, MO 63101",
   regulatoryRef: "PP-2847-US",
 } as const;
 
-export const topNav: NavItem[] = [
-  { label: "Platform", href: "/#solution" },
-  { label: "Architecture", href: "/#architecture" },
-  { label: "Use cases", href: "/#use-cases" },
-  { label: "Whitepaper", href: "/#whitepaper" },
-  { label: "Directory", href: "/directory" },
-  { label: "Integrate", href: "/business" },
-];
+export const topNav: NavItem[] = [];
 
 export const hero = {
-  eyebrow: "Old West Solutions LLC · Whitepaper v1.0",
+  eyebrow: "Old West Solutions LLC · Payphone",
   title: "Anonymous calls. Inherited trust. On-chain settlement.",
   subtitle:
     "A multi-tenant, verified-identity comms microservice powered by WebRTC and blockchain escrow—built for marketplaces that cannot afford PII, central call logs, or reinvented infrastructure.",
   ctaPrimary: "Read the architecture",
-  ctaSecondary: "View use cases",
+  ctaSecondary: "Client Portal",
+  ctaSecondaryHref: "/account",
 };
 
 export const problemGaps = [
@@ -196,7 +190,7 @@ export const quickActions = [
   { label: "Architecture", href: "/#architecture", icon: "signal" },
   { label: "DID auth", href: "/#architecture", icon: "shield" },
   { label: "Settlement", href: "/#use-cases", icon: "receipt" },
-  { label: "Integrate", href: "/business", icon: "handset" },
+  { label: "Client Portal", href: "/account", icon: "handset" },
   { label: "Directory", href: "/directory", icon: "user" },
   { label: "Support", href: "/support", icon: "alert" },
 ] as const;
@@ -220,14 +214,12 @@ export const footerColumns = [
     links: [
       { label: "Solution", href: "/#solution" },
       { label: "Architecture", href: "/#architecture" },
-      { label: "Use cases", href: "/#use-cases" },
-      { label: "Whitepaper", href: "/#whitepaper" },
     ],
   },
   {
     title: "Developers",
     links: [
-      { label: "Integrate", href: "/business" },
+      { label: "Client Portal", href: "/account" },
       { label: "Directory", href: "/directory" },
       { label: "Support", href: "/support" },
     ],

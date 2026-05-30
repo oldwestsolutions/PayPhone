@@ -32,7 +32,7 @@ export const defaultMetadata: Metadata = {
     locale: "en_US",
     url: baseUrl,
     siteName: site.name,
-    title: `${site.name} — Verified-Identity Comms Microservice`,
+    title: `${site.name} — ${site.tagline}`,
     description:
       "Plug-and-play WebRTC infrastructure with peer-to-peer media, DID auth, and transparent 5% on-chain settlement.",
   },

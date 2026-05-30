@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { hero, site } from "@/lib/content";
+import { hero } from "@/lib/content";
 import { useHeroScrollProgress } from "@/hooks/useParallax";
 import { cn } from "@/lib/utils";
 
@@ -154,7 +154,7 @@ export function Hero3D() {
 
   return (
     <section
-      className="scene-root relative min-h-[100dvh] min-h-screen flex flex-col justify-center items-center overflow-hidden bg-navy-deep text-white"
+      className="scene-root relative min-h-[100dvh] min-h-screen flex flex-col justify-start items-center overflow-hidden bg-navy-deep text-white"
       aria-label="Introduction"
     >
       {/* Parallax background */}
@@ -176,7 +176,7 @@ export function Hero3D() {
 
       {/* Centered content */}
       <div
-        className="relative z-10 flex flex-col items-center text-center px-4 pt-28 pb-20 md:pt-36 md:pb-28 max-w-4xl mx-auto w-full"
+        className="relative z-10 flex flex-col items-center text-center px-4 pt-20 pb-16 sm:pt-24 md:pt-28 max-w-4xl mx-auto w-full"
         style={{ opacity }}
       >
         <p className={cn("section-label text-copper-light mb-4")}>{hero.eyebrow}</p>
@@ -195,14 +195,10 @@ export function Hero3D() {
           <Link href="/#architecture" className="btn-primary">
             {hero.ctaPrimary}
           </Link>
-          <Link href="/#use-cases" className="btn-ghost-light">
+          <Link href={hero.ctaSecondaryHref} className="btn-ghost-light">
             {hero.ctaSecondary}
           </Link>
         </div>
-
-        <p className="mt-14 md:mt-20 text-[10px] uppercase tracking-widest text-white/30">
-          {site.name} · Scroll to explore ↓
-        </p>
       </div>
 
       {/* Bottom accent bar */}

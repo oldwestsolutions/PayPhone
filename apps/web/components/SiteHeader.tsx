@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { site, topNav } from "@/lib/content";
+import { site } from "@/lib/content";
 import { cn } from "@/lib/utils";
 
 const SCROLL_THRESHOLD = 64;
@@ -24,7 +23,6 @@ function BellMark({ className }: { className?: string }) {
 }
 
 export function SiteHeader() {
-  const pathname = usePathname();
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
 
@@ -57,7 +55,6 @@ export function SiteHeader() {
         hidden && "-translate-y-full pointer-events-none"
       )}
     >
-      {/* Utility bar — Verizon-style top strip */}
       <div className="bg-navy-deep text-white/90">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-1.5 text-[11px] uppercase tracking-corporate">
           <span className="hidden sm:inline text-white/60">
@@ -69,9 +66,6 @@ export function SiteHeader() {
             </Link>
             <Link href="/account" className="hover:text-copper-light transition">
               Sign in
-            </Link>
-            <Link href="/support#stores" className="hover:text-copper-light transition">
-              Find a shop
             </Link>
           </div>
         </div>
@@ -93,57 +87,11 @@ export function SiteHeader() {
             </div>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-8" aria-label="Primary">
-            {topNav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  pathname === item.href ||
-                    (item.href !== "/" && pathname.startsWith(item.href.split("#")[0]))
-                    ? "nav-link-active"
-                    : "nav-link"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <label className="hidden md:flex items-center gap-2 rounded-xl border border-navy/15 bg-white px-3 py-2">
-              <span className="sr-only">Search</span>
-              <svg className="h-4 w-4 text-slate-soft" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
-              </svg>
-              <input
-                type="search"
-                placeholder="Search help & plans"
-                className="w-40 bg-transparent text-sm outline-none placeholder:text-slate-soft/80"
-              />
-            </label>
-            <Link href="/business" className="btn-primary hidden sm:inline-flex text-xs py-2.5 px-4">
-              Integrate
-            </Link>
-          </div>
+          <Link href="/account" className="btn-primary inline-flex text-xs py-2.5 px-4">
+            Client Portal
+          </Link>
         </div>
       </div>
-
-      {/* Mobile nav */}
-      <nav
-        className="lg:hidden flex gap-1 overflow-x-auto border-t border-navy/10 px-4 py-2 bg-cream-warm/50"
-        aria-label="Mobile primary"
-      >
-        {topNav.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-medium text-slate-uk hover:bg-white hover:text-navy"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
     </header>
   );
 }
