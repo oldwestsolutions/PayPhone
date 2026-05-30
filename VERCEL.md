@@ -15,10 +15,20 @@ because `apps/api` had no `package.json`.
 | **Root Directory** | `apps/web` |
 | **Framework Preset** | Next.js |
 | **Build Command** | *(empty — use defaults)* |
-| **Output Directory** | *(empty)* |
+| **Output Directory** | *(must be empty — not `apps/web/out`)* |
 | **Install Command** | *(empty)* |
 
 Redeploy with **Clear build cache** once after changing Root Directory.
+
+### Fix “apps/web/apps/web/out was not found”
+
+Your Vercel project still has **Output Directory = `apps/web/out`**. With Root Directory = `apps/web`, that resolves to the wrong path.
+
+1. **Settings → Build & Development Settings → Output Directory**
+2. **Clear the field** (leave completely empty)
+3. Save and redeploy
+
+Until you clear it, the build copies `out/` → `apps/web/out/` automatically on Vercel.
 
 ## Legacy: Root Directory = `apps/api`
 
