@@ -2,14 +2,11 @@
   "name": "payphone",
   "private": true,
   "workspaces": [
-    "apps/api",
     "apps/web"
   ],
   "scripts": {
-    "dev": "npm run dev -w apps/web",
-    "build": "npm run build -w apps/api && npm run build -w apps/web",
-    "build:web": "npm run build -w apps/web",
-    "build:api": "npm run build -w apps/api",
-    "lint": "npm run lint -w apps/web"
+    "dev": "npm run dev -w @payphone/web",
+    "build": "npm run build -w @payphone/web",
+    "lint": "npm run lint -w @payphone/web"
   }
 }

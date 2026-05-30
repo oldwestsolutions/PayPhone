@@ -5,10 +5,8 @@ build:
   image: node:22-bookworm
   script:
     - npm ci
-    - npm run build -w apps/api
-    - npm run build -w apps/web
+    - npm run build
   artifacts:
     when: on_success
     paths:
-      - apps/api/dist/
-      - apps/web/.next/
+      - apps/web/out/
