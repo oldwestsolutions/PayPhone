@@ -1,0 +1,9 @@
+{
+  "name": "@payphone/vercel-stub",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "cd ../.. && npm run build",
+    "vercel-build": "cd ../.. && npm run build"
+  }
+}

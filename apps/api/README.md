@@ -1,7 +1,7 @@
-# Deprecated path
+# Vercel stub (not an API)
 
-This folder exists only so legacy Vercel projects with **Root Directory = `apps/api`** can still deploy.
+Legacy Vercel projects may still use **Root Directory = `apps/api`**. This folder only contains `package.json` + `vercel.json` so the build can run.
 
-**Recommended:** In Vercel → Project Settings → General, set **Root Directory** to `apps/web`.
+**Recommended:** Vercel → Project Settings → General → **Root Directory = `apps/web`**, then delete this folder.
 
-The site is built from `apps/web` (static Next.js). There is no Express server here.
+The real site is `apps/web` (static Next.js export). No Express.
