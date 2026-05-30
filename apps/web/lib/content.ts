@@ -23,24 +23,28 @@ export const hero = {
   ctaSecondaryHref: "/account",
 };
 
-export const problemGaps = [
-  {
-    name: "Twilio / Vonage",
-    issue: "PSTN requires caller ID—anonymity breaks for legal and healthcare clients.",
-  },
-  {
-    name: "Calendly / Upland",
-    issue: "Booking without comms, reputation, or verified settlement rails.",
-  },
-  {
-    name: "Discord / Telegram",
-    issue: "Consumer chat—no professional verification or payment discipline.",
-  },
-  {
-    name: "Custom builds",
-    issue: "Every marketplace rebuilds WebRTC, escrow, and reputation from scratch.",
-  },
-] as const;
+export const professionalComms = {
+  eyebrow: "Pay as you go",
+  title: "Professional telecom, billed by the second",
+  lead:
+    "No monthly plans, no unused minutes, no PSTN caller ID. Payphone is sovereign communication infrastructure for verified professionals—attorneys, consultants, engineers, and clinicians who charge for their time on the line.",
+  body:
+    "Escrow locks funds before the session starts. WebRTC keeps media peer-to-peer and encrypted. When the call ends, duration consensus releases payment on-chain—transparent, atomic, and proportional to actual talk time.",
+  features: [
+    "Per-second metering with provider-set rates",
+    "5% platform fee deducted on-chain at settlement",
+    "Reputation inherited from your parent marketplace",
+    "DID authentication—no passwords, no central call logs",
+  ],
+  idealFor: [
+    "Legal consultations & panel attorneys",
+    "Engineering time-for-hire",
+    "Real estate advisory calls",
+    "Healthcare consultant sessions",
+  ],
+  cta: "Explore architecture",
+  ctaHref: "/#architecture",
+} as const;
 
 export const differentiators = [
   {

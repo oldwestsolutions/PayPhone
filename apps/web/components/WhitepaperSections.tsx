@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { ParallaxLayer } from "@/components/ParallaxLayer";
+import { ProfessionalCommsSection } from "@/components/ProfessionalCommsSection";
 import {
   architectureTiers,
   businessModel,
   designPrinciples,
   differentiators,
-  problemGaps,
   useCases,
   whyAnonymity,
 } from "@/lib/content";
@@ -45,33 +45,7 @@ function Card3D({
 export function WhitepaperSections() {
   return (
     <>
-      {/* Problem */}
-      <section id="whitepaper" className="relative py-20 md:py-28 bg-cream scroll-mt-24">
-        <div className="mx-auto max-w-7xl px-4">
-          <ParallaxLayer speed={0.25} maxOffset={40}>
-            <div className="max-w-2xl space-y-4 mb-12">
-              <p className="section-label">Whitepaper · Executive summary</p>
-              <h2 className="heading-display text-3xl md:text-4xl">The gap in comms marketplaces</h2>
-              <div className="rule-gold" />
-              <p className="text-sm text-slate-uk leading-relaxed">
-                Legal, consulting, real estate, and healthcare marketplaces need verified
-                peer-to-peer infrastructure with anonymity, inherited trust, and transparent
-                settlement—without rebuilding the stack every launch.
-              </p>
-            </div>
-          </ParallaxLayer>
-          <div className="grid sm:grid-cols-2 gap-4 md:gap-6">
-            {problemGaps.map((g, i) => (
-              <ParallaxLayer key={g.name} speed={0.2 + i * 0.05} maxOffset={30}>
-                <Card3D depth="sm">
-                  <h3 className="font-display text-xl text-navy">{g.name}</h3>
-                  <p className="mt-3 text-sm text-slate-uk leading-relaxed">{g.issue}</p>
-                </Card3D>
-              </ParallaxLayer>
-            ))}
-          </div>
-        </div>
-      </section>
+      <ProfessionalCommsSection />
 
       {/* Solution */}
       <section id="solution" className="relative py-20 md:py-28 bg-white overflow-hidden scroll-mt-24">

@@ -1,7 +1,7 @@
 import http from "http";
 import express from "express";
 import cors from "cors";
-import helmet from "helmet";
+import { helmetMiddleware } from "./helmetMiddleware.js";
 import { connectMongo } from "./db.js";
 import { tenantMiddleware } from "./middleware/tenant.js";
 import { didAuthMiddleware } from "./middleware/didAuth.js";
@@ -61,7 +61,7 @@ async function main() {
     })
   );
 
-  app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+  app.use(helmetMiddleware({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
   app.use(
     cors({
       origin: process.env.CORS_ORIGIN?.split(",") ?? true,
