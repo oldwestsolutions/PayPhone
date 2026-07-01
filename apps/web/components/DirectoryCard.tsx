@@ -3,32 +3,32 @@ import type { DirectoryEntry } from "@/lib/content";
 
 export function DirectoryCard({ entry }: { entry: DirectoryEntry }) {
   return (
-    <article className="card-luxury p-6 flex flex-col gap-4 h-full">
+    <article className="feature-card flex flex-col gap-4 h-full">
       <div className="flex justify-between items-start gap-3">
         <div>
-          <h2 className="font-display text-xl text-navy">{entry.displayName}</h2>
-          <p className="text-xs text-copper mt-1 uppercase tracking-wide">{entry.title}</p>
+          <h2 className="text-xl font-medium text-wa-dark">{entry.displayName}</h2>
+          <p className="text-xs text-wa-teal mt-1">{entry.title}</p>
         </div>
         <span
           className={
             entry.availability === "Available"
-              ? "text-[10px] font-semibold uppercase tracking-wide text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full"
-              : "text-[10px] font-semibold uppercase tracking-wide text-slate-uk bg-cream-warm px-2 py-1 rounded-full"
+              ? "text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-full"
+              : "text-[10px] font-semibold text-wa-muted bg-wa-cream px-2 py-1 rounded-full"
           }
         >
           {entry.availability}
         </span>
       </div>
-      <p className="text-sm text-slate-uk leading-relaxed line-clamp-4 flex-1">{entry.bio}</p>
-      <div className="text-xs text-slate-soft space-y-1">
+      <p className="text-sm text-wa-muted leading-relaxed line-clamp-4 flex-1">{entry.bio}</p>
+      <div className="text-xs text-wa-muted space-y-1">
         <p>
           ★ {entry.rating} · {entry.reviews} reviews · {entry.verification}
         </p>
-        <p className="font-medium text-navy">{entry.rateLabel}</p>
+        <p className="font-medium text-wa-dark">{entry.rateLabel}</p>
       </div>
       <Link
         href={`/directory/${entry.id}`}
-        className="text-xs font-semibold uppercase tracking-corporate text-crimson hover:text-crimson-bright"
+        className="text-sm font-medium text-wa-teal hover:underline"
       >
         View profile →
       </Link>

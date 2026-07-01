@@ -1,28 +1,29 @@
 import { PageHero } from "@/components/PageHero";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { architectureServices, businessModel } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: "Integrate",
+  title: "For Business",
   description:
-    "Multi-tenant payphone.cc deployment for verified-identity marketplaces—Docker, GitLab Runners, isolated namespaces.",
+    "Deploy Payphone for your marketplace—Docker Compose, masked sessions, CRM analytics, and usage-based pricing.",
 };
 
 const tiers = [
   {
-    name: "Pilot tenant",
-    price: "Custom",
-    desc: "Single ecosystem, shared STUN/TURN, dedicated API namespace and DB isolation.",
+    name: "Pilot",
+    price: businessModel.tiers[0],
+    desc: "Single marketplace, Docker Compose on one host, Twilio number pool for masked sessions.",
   },
   {
-    name: "Regional",
-    price: "Custom",
-    desc: "Multiple verticals, configurable reputation readers, SLA on signaling uptime.",
+    name: "Volume",
+    price: businessModel.tiers[1],
+    desc: "Multiple sellers, response-time leaderboards, dynamic number pool sizing.",
   },
   {
     name: "Enterprise",
-    price: "Bespoke",
-    desc: "Dedicated runners, custom settlement contracts, 99.999% signaling SLA.",
+    price: businessModel.tiers[2],
+    desc: "Dedicated number pool, custom SLA, optional Payment Adapter with Circle USDC and Stellar XLM.",
   },
 ];
 
@@ -30,50 +31,62 @@ export default function BusinessPage() {
   return (
     <>
       <PageHero
-        dark
-        eyebrow="Multi-tenant deploy"
-        title="Integrate your ecosystem"
-        subtitle="GitLab Runners spin isolated payphone instances per marketplace—Docker boundaries, dedicated endpoints, reputation gating from your existing KYC."
+        eyebrow="For marketplace operators"
+        title="Transform your marketplace"
+        subtitle="Self-hosted masked voice and SMS for buyers and sellers. Five microservices, one docker compose up command, CRM tracking built in."
       />
 
-      <section className="py-16" id="trunks">
+      <section className="py-16 bg-luxury-black" id="deploy">
         <div className="mx-auto max-w-7xl px-4 space-y-8">
-          <h2 className="heading-display text-3xl">Deployment model</h2>
-          <p className="text-sm text-slate-uk max-w-2xl leading-relaxed">
-            Each tenant receives isolated session state while sharing hardened STUN/TURN
-            infrastructure. No media relay—peer-to-peer DTLS-SRTP only.
+          <h2 className="heading-section">Deployment model</h2>
+          <p className="text-base text-luxury-gray max-w-2xl leading-relaxed">
+            The full system starts with{" "}
+            <code className="bg-luxury-panel border border-luxury-border px-2 py-0.5 rounded text-sm text-white">
+              docker compose up
+            </code>
+            . No cloud runtime required beyond Twilio API access.
           </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {architectureServices.map((s) => (
+              <div key={s.name} className="feature-card">
+                <h3 className="font-medium text-white">{s.name}</h3>
+                <p className="mt-2 text-sm text-luxury-gray">{s.body}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section className="py-16 bg-white" id="booth">
+      <section className="py-16 bg-luxury-dark">
         <div className="mx-auto max-w-7xl px-4 grid lg:grid-cols-2 gap-12 items-center">
-          <div className="card-luxury card-3d aspect-video bg-navy payphone-grille flex items-center justify-center">
-            <span className="font-display text-3xl text-copper-light">Tenant</span>
+          <div className="rounded-3xl bg-luxury-panel border border-luxury-border p-8 font-mono text-sm space-y-2">
+            <p className="text-white">$ docker compose up -d</p>
+            <p className="text-luxury-gray-dim">Starting postgres, redis, api-gateway...</p>
+            <p className="text-luxury-gray-dim">Starting contract-engine, btcpay...</p>
+            <p className="text-white mt-4">✓ API Gateway: http://localhost:4000</p>
+            <p className="text-white">✓ Haskell Engine: http://localhost:4004</p>
           </div>
           <div className="space-y-4">
-            <h2 className="heading-display text-3xl">Reputation inheritance</h2>
-            <p className="text-sm text-slate-uk leading-relaxed">
-              Trust stays in Centuries Mutual, your consulting network, or healthcare
-              panel—payphone reads scores read-only. Providers set visibility thresholds;
-              the comms layer stays disposable.
+            <h2 className="heading-section">Local development setup</h2>
+            <p className="text-sm text-luxury-gray leading-relaxed">
+              Requirements: Docker Desktop, Node.js 20, Twilio account, ngrok for webhooks.
             </p>
-            <Link href="/#architecture" className="btn-primary text-xs">
-              View five-tier architecture
+            <Link href="/download" className="btn-download inline-flex text-sm">
+              Download desktop app
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="py-16 bg-cream-warm/50" id="enterprise">
+      <section className="py-16 bg-luxury-black" id="enterprise">
         <div className="mx-auto max-w-7xl px-4">
-          <p className="section-label mb-8">Engagement tiers</p>
+          <p className="section-eyebrow mb-8">Pricing tiers</p>
           <div className="grid md:grid-cols-3 gap-6">
             {tiers.map((t) => (
-              <article key={t.name} className="card-luxury card-3d p-8 space-y-4">
-                <h3 className="font-display text-2xl">{t.name}</h3>
-                <p className="text-crimson font-semibold text-sm">{t.price}</p>
-                <p className="text-sm text-slate-uk">{t.desc}</p>
+              <article key={t.name} className="feature-card space-y-4">
+                <h3 className="text-2xl font-display font-light text-white">{t.name}</h3>
+                <p className="text-white font-medium text-sm">{t.price}</p>
+                <p className="text-sm text-luxury-gray">{t.desc}</p>
               </article>
             ))}
           </div>

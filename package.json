@@ -2,11 +2,18 @@
   "name": "payphone",
   "private": true,
   "workspaces": [
-    "apps/web"
+    "apps/web",
+    "apps/desktop",
+    "apps/gateway"
   ],
   "scripts": {
     "dev": "npm run dev -w @payphone/web",
     "build": "npm run build -w @payphone/web",
-    "lint": "npm run lint -w @payphone/web"
+    "lint": "npm run lint -w @payphone/web",
+    "gateway:dev": "npm run dev -w @payphone/gateway",
+    "gateway:start": "npm run start -w @payphone/gateway",
+    "escrow:dev": "cd services/escrow-engine && cabal run escrow-engine",
+    "desktop:dev": "npm run tauri dev -w @payphone/desktop",
+    "desktop:build": "npm run tauri build -w @payphone/desktop"
   }
 }

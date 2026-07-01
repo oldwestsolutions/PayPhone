@@ -3,10 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --navy: #0c1a2e;
-  --cream: #f6f3ec;
-  --copper: #b87333;
-  --crimson: #b91c3c;
+  --luxury-black: #0a0a0a;
+  --luxury-white: #ffffff;
+  --luxury-gray: #a3a3a3;
 }
 
 html {
@@ -20,167 +19,56 @@ html {
 }
 
 body {
-  @apply bg-cream text-navy antialiased font-sans;
+  @apply bg-luxury-black text-luxury-silver antialiased font-sans;
   overflow-x: hidden;
 }
 
 @layer components {
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-crimson px-6 py-3 text-sm font-semibold uppercase tracking-corporate text-white transition hover:bg-crimson-bright focus:outline-none focus:ring-2 focus:ring-crimson/40 focus:ring-offset-2 focus:ring-offset-cream;
+  .btn-download {
+    @apply inline-flex items-center justify-center gap-2 rounded-pill bg-white px-6 py-3 text-[15px] font-semibold text-luxury-black transition hover:bg-luxury-accent focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-luxury-black;
   }
 
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-navy/20 bg-white px-6 py-3 text-sm font-semibold uppercase tracking-corporate text-navy transition hover:border-navy/40 hover:bg-cream-warm focus:outline-none focus:ring-2 focus:ring-navy/20;
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 rounded-pill border border-luxury-border bg-transparent px-6 py-3 text-[15px] font-medium text-luxury-silver transition hover:border-white/40 hover:text-white;
   }
 
-  .btn-ghost-light {
-    @apply inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 px-5 py-2.5 text-xs font-semibold uppercase tracking-corporate text-white transition hover:bg-white/10;
-  }
-
-  .section-label {
-    @apply text-xs font-semibold uppercase tracking-wide text-copper;
-  }
-
-  .heading-display {
-    @apply font-display font-light tracking-tight text-navy;
-  }
-
-  .rule-gold {
-    @apply h-px w-16 bg-copper-shine;
-  }
-
-  .card-luxury {
-    @apply rounded-2xl border border-navy/10 bg-white shadow-card transition hover:shadow-luxury;
-  }
-
-  .card-3d {
-    transform-style: preserve-3d;
-    backface-visibility: hidden;
+  .btn-ghost-dark {
+    @apply inline-flex items-center justify-center gap-2 rounded-pill border border-luxury-border px-5 py-2.5 text-sm font-medium text-luxury-gray transition hover:border-white/40 hover:text-white;
   }
 
   .nav-link {
-    @apply text-sm text-slate-uk transition hover:text-navy;
+    @apply text-[15px] text-luxury-gray transition hover:text-white;
   }
 
-  .nav-link-active {
-    @apply text-sm font-medium text-navy;
+  .section-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.2em] text-luxury-gray;
   }
 
-  .preserve-3d {
-    transform-style: preserve-3d;
+  .heading-hero {
+    @apply font-display text-4xl md:text-5xl lg:text-[56px] font-light leading-[1.08] tracking-tight text-white;
   }
 
-  .scene-root {
-    isolation: isolate;
+  .heading-section {
+    @apply font-display text-3xl md:text-4xl lg:text-[44px] font-light leading-tight text-white;
   }
 
-  .scene-stage {
-    transform-style: preserve-3d;
+  .chat-bubble-out {
+    @apply rounded-2xl rounded-tr-sm bg-luxury-elevated border border-luxury-border px-4 py-2.5 text-sm text-luxury-silver shadow-bubble;
   }
 
-  .scene-card-3d {
-    transform-style: preserve-3d;
-    transform: rotateX(6deg) rotateY(-12deg);
+  .chat-bubble-in {
+    @apply rounded-2xl rounded-tl-sm bg-luxury-panel border border-white/10 px-4 py-2.5 text-sm text-luxury-silver shadow-bubble;
   }
 
-  .scene-grid {
-    background-image: linear-gradient(
-        rgba(184, 115, 51, 0.12) 1px,
-        transparent 1px
-      ),
-      linear-gradient(90deg, rgba(184, 115, 51, 0.12) 1px, transparent 1px);
-    background-size: 48px 48px;
-    transform: rotateX(72deg) translateY(20%);
-    transform-origin: center top;
+  .glass-panel {
+    @apply rounded-3xl bg-luxury-panel border border-luxury-border shadow-panel;
   }
 
-  .scene-ring {
-    position: absolute;
-    border-radius: 50%;
-    border: 1px solid rgba(212, 165, 116, 0.25);
-    animation: scene-spin 40s linear infinite;
+  .feature-card {
+    @apply rounded-2xl bg-luxury-panel border border-luxury-border p-6 shadow-card;
   }
 
-  .scene-ring-1 {
-    width: min(90vw, 520px);
-    height: min(90vw, 520px);
-    animation-duration: 48s;
+  .luxury-divider {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-white/20 to-transparent;
   }
-
-  .scene-ring-2 {
-    width: min(70vw, 380px);
-    height: min(70vw, 380px);
-    border-color: rgba(185, 28, 60, 0.2);
-    animation-direction: reverse;
-    animation-duration: 32s;
-  }
-
-  .scene-ring-3 {
-    width: min(50vw, 260px);
-    height: min(50vw, 260px);
-    animation-duration: 24s;
-  }
-
-  .scene-glow {
-    background: radial-gradient(
-      ellipse 80% 60% at 70% 20%,
-      rgba(184, 115, 51, 0.2),
-      transparent 70%
-    );
-  }
-}
-
-@keyframes blockFloat {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(0, -14px, 0);
-  }
-}
-
-@keyframes scene-spin {
-  from {
-    transform: rotateX(65deg) rotateZ(0deg);
-  }
-  to {
-    transform: rotateX(65deg) rotateZ(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .scene-ring {
-    animation: none;
-  }
-  .scene-card-3d {
-    transform: none;
-  }
-}
-
-@media (max-width: 768px) {
-  .scene-ring-1 {
-    width: 120vw;
-    height: 120vw;
-    opacity: 0.5;
-  }
-  .scene-card-3d {
-    transform: rotateX(4deg) rotateY(-6deg);
-  }
-}
-
-.payphone-grille {
-  background-image: repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 3px,
-      rgba(12, 26, 46, 0.04) 3px,
-      rgba(12, 26, 46, 0.04) 4px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 3px,
-      rgba(12, 26, 46, 0.04) 3px,
-      rgba(12, 26, 46, 0.04) 4px
-    );
 }

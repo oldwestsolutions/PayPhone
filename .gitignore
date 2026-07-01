@@ -5,6 +5,9 @@ apps/web/apps
 dist
 .env
 .env.local
+.env.*
+!.env.example
+apps/gateway/.env
 coverage
 *.log
 .openzeppelin

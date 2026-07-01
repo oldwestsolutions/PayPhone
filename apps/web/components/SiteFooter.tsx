@@ -1,64 +1,57 @@
 import Link from "next/link";
+import { BellLogo } from "@/components/BellLogo";
 import { footerColumns, site } from "@/lib/content";
 
 export function SiteFooter() {
   return (
-    <footer className="bg-navy-deep text-white/85 mt-auto">
-      <div className="h-1 bg-copper-shine" aria-hidden />
-
+    <footer className="bg-luxury-dark border-t border-luxury-border mt-auto relative">
+      <div className="luxury-divider absolute top-0 left-0 right-0" />
       <div className="mx-auto max-w-7xl px-4 py-14">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-5">
-          <div className="lg:col-span-2 space-y-4">
-            <p className="font-display text-3xl font-light text-white">
-              {site.brand}
-              <span className="text-copper-light">.cc</span>
+        <div className="flex flex-col lg:flex-row gap-12 lg:gap-8 justify-between">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <BellLogo size={44} />
+              <span className="font-display text-3xl font-light text-white">{site.brand}</span>
+            </div>
+            <p className="text-sm text-luxury-gray max-w-xs leading-relaxed">
+              International tele communications for people who expect privacy, clarity, and a phone that simply works.
             </p>
-            <p className="text-sm leading-relaxed text-white/60 max-w-sm">
-              Multi-tenant WebRTC signaling, DID authentication, reputation inheritance, and
-              on-chain settlement—by {site.legalName}. Whitepaper v{site.whitepaperVersion}.
-            </p>
-            <p className="text-xs text-white/40">
-              {site.registeredOffice}
-              <br />
-              Company no. 14882901 · {site.regulatoryRef}
-            </p>
+            <Link href="/download" className="btn-download inline-flex">
+              Download
+            </Link>
           </div>
 
-          {footerColumns.map((col) => (
-            <div key={col.title}>
-              <h3 className="text-xs font-semibold uppercase tracking-corporate text-copper-light mb-4">
-                {col.title}
-              </h3>
-              <ul className="space-y-2">
-                {col.links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-white/70 hover:text-white transition"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 flex-1 max-w-3xl">
+            {footerColumns.map((col) => (
+              <div key={col.title}>
+                <h3 className="text-sm font-semibold text-white mb-4">{col.title}</h3>
+                <ul className="space-y-2.5">
+                  {col.links.map((link) => (
+                    <li key={link.label}>
+                      <Link
+                        href={link.href}
+                        className="text-sm text-luxury-gray hover:text-white transition"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center text-xs text-white/40">
-          <p>© {new Date().getFullYear()} {site.legalName}. All rights reserved.</p>
+        <div className="mt-12 pt-8 border-t border-luxury-border flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center text-xs text-luxury-gray-dim">
+          <p>
+            © {new Date().getFullYear()} {site.legalName}. Whitepaper v{site.whitepaperVersion}.
+          </p>
           <div className="flex flex-wrap gap-4">
-            <Link href="/support#privacy" className="hover:text-white/70">
-              Privacy policy
+            <Link href="/support#terms" className="hover:text-white">
+              Terms &amp; Privacy Policy
             </Link>
-            <Link href="/support#terms" className="hover:text-white/70">
-              Terms of use
-            </Link>
-            <Link href="/support#cookies" className="hover:text-white/70">
-              Cookie settings
-            </Link>
-            <Link href="/support#regulatory" className="hover:text-white/70">
-              Regulatory compliance
+            <Link href="/support#regulatory" className="hover:text-white">
+              Sitemap
             </Link>
           </div>
         </div>

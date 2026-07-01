@@ -6,27 +6,30 @@ const baseUrl = `https://${site.domain}`;
 export const defaultMetadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: `${site.name} — WebRTC & On-Chain Settlement for Verified Marketplaces`,
+    default: `${site.name} — Privacy-Preserving Marketplace Communications`,
     template: `%s · ${site.name}`,
   },
   description:
-    "payphone.cc is a multi-tenant microservice by Old West Solutions LLC: anonymous WebRTC signaling, DID authentication, reputation inheritance, and blockchain escrow for professional marketplaces.",
+    "Payphone.cc is a self-hosted communication layer for marketplaces: masked voice calls, masked SMS, session-scoped privacy, and CRM tracking. Whitepaper v2.0 by Old West Solutions LLC.",
   keywords: [
     "payphone.cc",
-    "WebRTC marketplace",
-    "DID authentication",
-    "on-chain settlement",
-    "verified identity communications",
-    "anonymous professional calls",
-    "multi-tenant microservice",
-    "reputation inheritance",
-    "blockchain escrow",
+    "masked phone calls",
+    "marketplace communications",
+    "privacy-preserving SMS",
+    "session-scoped routing",
+    "Twilio proxy numbers",
+    "self-hosted microservices",
+    "Docker Compose",
     "Old West Solutions",
   ],
   authors: [{ name: site.legalName }],
   creator: site.legalName,
   publisher: site.legalName,
   robots: { index: true, follow: true },
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -34,13 +37,13 @@ export const defaultMetadata: Metadata = {
     siteName: site.name,
     title: `${site.name} — ${site.tagline}`,
     description:
-      "Plug-and-play WebRTC infrastructure with peer-to-peer media, DID auth, and transparent 5% on-chain settlement.",
+      "Masked voice and messaging for marketplaces. Real-time communication without exposing personal phone numbers.",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${site.name} — WebRTC + Blockchain Settlement`,
+    title: `${site.name} — Masked Marketplace Communications`,
     description:
-      "Anonymous P2P calls for legal, consulting, healthcare, and real estate marketplaces. No central call logs.",
+      "Self-hosted microservices for privacy-preserving buyer-seller communication. Whitepaper v2.0.",
   },
   alternates: { canonical: baseUrl },
 };
