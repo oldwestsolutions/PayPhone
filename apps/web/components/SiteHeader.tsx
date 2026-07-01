@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { BellLogo } from "@/components/BellLogo";
+import { Bell } from "@/components/Bell";
 import { hero, site, topNav } from "@/lib/content";
 
 function DownloadIcon() {
@@ -52,8 +52,8 @@ export function SiteHeader() {
     >
       <div className="mx-auto max-w-7xl px-4">
         <div className="flex items-center justify-between gap-4 py-3 md:py-4">
-          <Link href="/" className="flex items-center gap-3 shrink-0">
-            <BellLogo size={40} />
+          <Link href="/" className="flex items-center gap-3 shrink-0 group" aria-label="Payphone home">
+            <Bell size={36} className="text-white group-hover:opacity-90 transition-opacity" />
             <div>
               <span className="font-display text-2xl font-medium text-white block leading-none">{site.brand}</span>
               <span className="text-[10px] uppercase tracking-widest text-luxury-gray-dim">{site.tagline}</span>

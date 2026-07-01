@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BellLogo } from "@/components/BellLogo";
+import { Bell } from "@/components/Bell";
 import { footerColumns, site } from "@/lib/content";
 
 export function SiteFooter() {
@@ -10,7 +10,7 @@ export function SiteFooter() {
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-8 justify-between">
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <BellLogo size={44} />
+              <Bell size={40} />
               <span className="font-display text-3xl font-light text-white">{site.brand}</span>
             </div>
             <p className="text-sm text-luxury-gray max-w-xs leading-relaxed">

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BellLogo } from "@/components/BellLogo";
+import { Bell } from "@/components/Bell";
 import { desktopFeatures, downloadPlatforms, site } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -46,7 +46,7 @@ export default function DownloadPage() {
     <div className="bg-luxury-black">
       <section className="relative py-16 md:py-24 bg-hero-luxury border-b border-luxury-border">
         <div className="mx-auto max-w-4xl px-4 text-center space-y-6">
-          <BellLogo size={56} className="mx-auto" />
+          <Bell size={48} className="mx-auto" />
           <p className="section-eyebrow">Enterprise v{site.enterpriseVersion}</p>
           <h1 className="heading-section">Download Payphone</h1>
           <p className="text-lg text-luxury-gray max-w-2xl mx-auto">
