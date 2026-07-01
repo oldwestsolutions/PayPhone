@@ -43,7 +43,11 @@ export type WalletSummary = {
   public_key: string;
   balance_xlm: string;
   balance_usd: string;
+  circle_wallet_id: string;
   circle_address: string;
+  circle_usdc: string;
+  circle_balances: { token_id?: string; symbol: string; amount: string; blockchain?: string; token_address?: string }[];
+  circle_live: boolean;
   funded: boolean;
 };
 export type EscrowContract = {
@@ -53,6 +57,7 @@ export type EscrowContract = {
   amount: number;
   currency: string;
   status: string;
+  circleFundTxId?: string;
 };
 export type DashboardStats = {
   calls_count: number;

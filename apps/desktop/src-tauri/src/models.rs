@@ -112,6 +112,21 @@ pub struct CircleWallet {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CircleBalance {
+    pub token_id: Option<String>,
+    pub symbol: String,
+    pub amount: String,
+    pub blockchain: Option<String>,
+    pub token_address: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CircleTransferResult {
+    pub id: String,
+    pub state: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EscrowContract {
     pub contract_id: String,
@@ -120,6 +135,8 @@ pub struct EscrowContract {
     pub amount: f64,
     pub currency: String,
     pub status: String,
+    #[serde(default)]
+    pub circle_fund_tx_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -13,6 +13,7 @@
     "lint": "npm run lint -w @payphone/web",
     "gateway:dev": "npm run dev -w @payphone/gateway",
     "gateway:start": "npm run start -w @payphone/gateway",
+    "circle:setup": "node scripts/circle-setup.mjs",
     "mask-proxy:dev": "npm run dev -w @payphone/mask-proxy",
     "mask-proxy:start": "npm run start -w @payphone/mask-proxy",
     "escrow:dev": "cd services/escrow-engine && cabal run escrow-engine",

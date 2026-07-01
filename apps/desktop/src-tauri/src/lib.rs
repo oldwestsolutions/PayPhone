@@ -438,15 +438,19 @@ async fn open_url(app: tauri::AppHandle, url: String) -> Result<(), String> {
 
 #[tauri::command]
 async fn get_wallet_summary(state: State<'_, AppState>) -> Result<WalletSummary, String> {
-    let (stellar, circle) = {
+    let (stellar, wallet_id, circle) = {
         let store = state.store.lock().map_err(|e| e.to_string())?;
         let user = store
             .current_user
             .as_ref()
             .ok_or_else(|| "Not signed in".to_string())?;
-        (user.stellar_public_key.clone(), user.circle_wallet_address.clone())
+        (
+            user.stellar_public_key.clone(),
+            user.circle_wallet_id.clone(),
+            user.circle_wallet_address.clone(),
+        )
     };
-    wallet::wallet_summary(&stellar, &circle).await
+    wallet::wallet_summary(&state.config.api_gateway_url, &stellar, &wallet_id, &circle).await
 }
 
 #[tauri::command]
@@ -534,6 +538,7 @@ async fn create_escrow(
         amount,
         currency,
         status: "Draft".into(),
+        circle_fund_tx_id: None,
     };
 
     let engine = EscrowEngineClient::new(state.config.escrow_engine_url.clone());
@@ -565,37 +570,57 @@ async fn transition_escrow(
     contract_id: String,
     request_type: String,
 ) -> Result<EscrowContract, String> {
-    let requester_id = {
+    let (requester_id, buyer_wallet_id) = {
         let store = state.store.lock().map_err(|e| e.to_string())?;
-        store
+        let user = store
             .current_user
             .as_ref()
-            .map(|u| u.username.clone())
-            .ok_or_else(|| "Not signed in".to_string())?
+            .ok_or_else(|| "Not signed in".to_string())?;
+        (user.username.clone(), user.circle_wallet_id.clone())
     };
 
+    let current = with_store(&state, |store| {
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        store
+            .escrows_by_user
+            .get(&user.username)
+            .and_then(|list| list.iter().find(|c| c.contract_id == contract_id).cloned())
+            .ok_or_else(|| "Contract not found".to_string())
+    })?;
+
+    let mut circle_fund_tx_id = current.circle_fund_tx_id.clone();
+
+    if request_type == "fund"
+        && current.currency.eq_ignore_ascii_case("USDC")
+        && requester_id == current.buyer_id
+        && circle_fund_tx_id.is_none()
+    {
+        let amount = format!("{:.2}", current.amount);
+        let tx = circle_client::fund_escrow(
+            &state.config.api_gateway_url,
+            &buyer_wallet_id,
+            &contract_id,
+            &amount,
+        )
+        .await?;
+        circle_fund_tx_id = Some(tx.id);
+    }
+
     let request = TransitionRequest {
-        request_type,
-        requester_id,
+        request_type: request_type.clone(),
+        requester_id: requester_id.clone(),
     };
 
     let engine = EscrowEngineClient::new(state.config.escrow_engine_url.clone());
-    let updated = if engine.health().await {
+    let mut updated = if engine.health().await {
         engine.transition(&contract_id, request).await?
     } else {
-        let current = with_store(&state, |store| {
-            let user = store
-                .current_user
-                .as_ref()
-                .ok_or_else(|| "Not signed in".to_string())?;
-            store
-                .escrows_by_user
-                .get(&user.username)
-                .and_then(|list| list.iter().find(|c| c.contract_id == contract_id).cloned())
-                .ok_or_else(|| "Contract not found".to_string())
-        })?;
         EscrowEngineClient::local_transition(&current, &request)?
     };
+    updated.circle_fund_tx_id = circle_fund_tx_id;
 
     with_store(&state, |store| {
         let user = store
