@@ -1,13 +1,13 @@
 cabal-version: 2.4
-name: payphone-escrow-engine
+name: payphone-telephony-engine
 version: 0.1.0.0
-synopsis: Payphone escrow rules engine
+synopsis: Payphone name-to-name telephony rules engine
 license: MIT
 
-executable escrow-engine
+executable telephony-engine
   main-is: Main.hs
   hs-source-dirs: .
-  other-modules: Escrow.Types, Escrow.Transition, Escrow.Billing
+  other-modules: Telephony.Types, Telephony.Routing, Telephony.Tolls, Telephony.Billing
   build-depends:
     base,
     aeson,

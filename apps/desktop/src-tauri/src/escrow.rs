@@ -48,26 +48,6 @@ impl EscrowEngineClient {
         body.contract.ok_or_else(|| "No contract returned".into())
     }
 
-    pub async fn get_contract(&self, contract_id: &str) -> Result<EscrowContract, String> {
-        let url = format!(
-            "{}/contracts/{}",
-            self.base_url.trim_end_matches('/'),
-            contract_id
-        );
-        let resp = self
-            .client
-            .get(&url)
-            .send()
-            .await
-            .map_err(|e| format!("Escrow engine unreachable: {e}"))?;
-
-        let body: TransitionResponse = resp
-            .json()
-            .await
-            .map_err(|e| format!("Invalid escrow response: {e}"))?;
-        body.contract.ok_or_else(|| "Contract not found".into())
-    }
-
     pub async fn transition(
         &self,
         contract_id: &str,
@@ -102,6 +82,9 @@ impl EscrowEngineClient {
         contract: &EscrowContract,
         request: &TransitionRequest,
     ) -> Result<EscrowContract, String> {
+        if contract.buyer_balance < contract.amount {
+            return Err("Insufficient wallet balance to back this escrow.".into());
+        }
         let mut c = contract.clone();
         let ok_party = |id: &str| id == c.buyer_id || id == c.seller_id;
         match (c.status.as_str(), request.request_type.as_str()) {
@@ -113,6 +96,7 @@ impl EscrowEngineClient {
             ("ReleasePending", "settle") if request.requester_id == c.buyer_id => {
                 c.status = "Settled".into()
             }
+            ("Active", "settle_call") if ok_party(&request.requester_id) => c.status = "Settled".into(),
             ("Active", "dispute") if ok_party(&request.requester_id) => c.status = "Disputed".into(),
             ("Draft", "cancel") => c.status = "Cancelled".into(),
             ("Funded", "cancel") if request.requester_id == c.buyer_id => {

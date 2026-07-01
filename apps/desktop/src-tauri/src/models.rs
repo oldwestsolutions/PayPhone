@@ -1,5 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+fn default_account_type() -> String {
+    "consumer".into()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserAccount {
     pub username: String,
@@ -10,6 +14,16 @@ pub struct UserAccount {
     pub circle_wallet_id: String,
     pub circle_wallet_address: String,
     pub masked_number: String,
+    #[serde(default)]
+    pub personal_phone: String,
+    #[serde(default = "default_account_type")]
+    pub account_type: String,
+    #[serde(default)]
+    pub call_toll_usdc: Option<f64>,
+    #[serde(default)]
+    pub sms_toll_usdc: Option<f64>,
+    #[serde(default)]
+    pub message_gift_usdc: Option<f64>,
     #[serde(default)]
     pub storage_paid: bool,
     pub storage_invoice_id: Option<String>,
@@ -23,6 +37,10 @@ pub struct PublicUser {
     pub circle_wallet_address: String,
     pub masked_number: String,
     #[serde(default)]
+    pub personal_phone: String,
+    #[serde(default = "default_account_type")]
+    pub account_type: String,
+    #[serde(default)]
     pub storage_paid: bool,
 }
 
@@ -34,6 +52,8 @@ impl From<UserAccount> for PublicUser {
             stellar_public_key: u.stellar_public_key,
             circle_wallet_address: u.circle_wallet_address,
             masked_number: u.masked_number,
+            personal_phone: u.personal_phone.clone(),
+            account_type: u.account_type.clone(),
             storage_paid: u.storage_paid,
         }
     }
@@ -60,8 +80,10 @@ pub struct Contact {
 pub struct CallRecord {
     pub id: String,
     pub number: String,
+    pub peer_name: String,
     pub direction: String,
     pub status: String,
+    pub caller_id_shown: String,
     pub started_at: u64,
 }
 
@@ -87,6 +109,7 @@ pub struct PlaceCallResult {
     pub telephony_available: bool,
     pub message: String,
     pub masked_caller_id: String,
+    pub caller_id_shown: String,
     pub session_id: String,
     pub connected: bool,
 }
@@ -137,6 +160,18 @@ pub struct EscrowContract {
     pub status: String,
     #[serde(default)]
     pub circle_fund_tx_id: Option<String>,
+    #[serde(default)]
+    pub buyer_balance: f64,
+    #[serde(default = "default_min_billable")]
+    pub min_billable_seconds: i32,
+    #[serde(default)]
+    pub rate_per_second: f64,
+    #[serde(default)]
+    pub call_session_id: Option<String>,
+}
+
+fn default_min_billable() -> i32 {
+    60
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -145,6 +180,8 @@ pub struct TransitionRequest {
     pub request_type: String,
     #[serde(rename = "requesterId")]
     pub requester_id: String,
+    #[serde(rename = "durationSeconds", default)]
+    pub duration_seconds: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -159,4 +196,6 @@ pub struct DashboardStats {
     pub contacts_count: usize,
     pub escrows_active: usize,
     pub escrow_engine_online: bool,
+    pub telephony_engine_online: bool,
+    pub personal_phone_connected: bool,
 }

@@ -186,7 +186,7 @@ function PaywallScreen({ user, onActivated }: { user: UserAccount; onActivated: 
 export default function App() {
   const [phase, setPhase] = useState<Phase>("splash");
   const [user, setUser] = useState<UserAccount | null>(null);
-  const [section, setSection] = useState<AppSection>("dashboard");
+  const [section, setSection] = useState<AppSection>("communications");
 
   function afterSplash() {
     invoke<UserAccount | null>("get_session")

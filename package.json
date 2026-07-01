@@ -16,6 +16,7 @@
     "circle:setup": "node scripts/circle-setup.mjs",
     "mask-proxy:dev": "npm run dev -w @payphone/mask-proxy",
     "mask-proxy:start": "npm run start -w @payphone/mask-proxy",
+    "telephony:dev": "cd services/telephony-engine && cabal run telephony-engine",
     "escrow:dev": "cd services/escrow-engine && cabal run escrow-engine",
     "desktop:dev": "npm run tauri dev -w @payphone/desktop",
     "desktop:build": "npm run tauri build -w @payphone/desktop"

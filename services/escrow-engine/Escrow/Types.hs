@@ -21,6 +21,10 @@ data EscrowContract = EscrowContract
   , amount :: !Double
   , currency :: !String
   , status :: !EscrowStatus
+  , buyerBalance :: !Double
+  , minBillableSeconds :: !Int
+  , ratePerSecond :: !Double
+  , callSessionId :: !(Maybe String)
   } deriving (Eq, Show, Generic)
 
 instance ToJSON EscrowContract where
@@ -31,6 +35,7 @@ instance FromJSON EscrowContract where
 data TransitionRequest = TransitionRequest
   { requestType :: !String
   , requesterId :: !String
+  , durationSeconds :: !(Maybe Int)
   } deriving (Eq, Show, Generic)
 
 instance ToJSON TransitionRequest where
@@ -41,6 +46,8 @@ instance FromJSON TransitionRequest where
 data TransitionResponse = TransitionResponse
   { contract :: Maybe EscrowContract
   , error :: Maybe String
+  , billableSeconds :: Maybe Int
+  , chargedAmount :: Maybe Double
   } deriving (Eq, Show, Generic)
 
 instance ToJSON TransitionResponse where
@@ -51,6 +58,9 @@ instance FromJSON TransitionResponse where
 jsonOpts :: Options
 jsonOpts = defaultOptions
 
-newContract :: String -> String -> String -> Double -> String -> EscrowContract
-newContract cid buyer seller amt cur =
-  EscrowContract cid buyer seller amt cur Draft
+newContract :: String -> String -> String -> Double -> String -> Double -> Int -> Double -> Maybe String -> EscrowContract
+newContract cid buyer seller amt cur bal minSecs rate sid =
+  EscrowContract cid buyer seller amt cur Draft bal minSecs rate sid
+
+defaultMinBillableSeconds :: Int
+defaultMinBillableSeconds = 60

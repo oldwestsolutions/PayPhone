@@ -21,6 +21,7 @@ contract PayPhoneEscrowERC20 {
         address provider;
         uint256 ratePerSecond;
         uint256 maxDuration;
+        uint256 minBillableSeconds;
         uint256 amount;
         bool released;
         bool disputed;
@@ -60,6 +61,7 @@ contract PayPhoneEscrowERC20 {
         address provider,
         uint256 ratePerSecond,
         uint256 maxDuration,
+        uint256 minBillableSeconds,
         uint256 amount
     ) external {
         require(escrows[sessionId].client == address(0), "exists");
@@ -72,6 +74,7 @@ contract PayPhoneEscrowERC20 {
             provider: provider,
             ratePerSecond: ratePerSecond,
             maxDuration: maxDuration,
+            minBillableSeconds: minBillableSeconds,
             amount: amount,
             released: false,
             disputed: false
@@ -93,7 +96,8 @@ contract PayPhoneEscrowERC20 {
         if (e.released) revert AlreadyReleased();
         if (actualDuration > e.maxDuration) revert InvalidDuration();
 
-        uint256 gross = e.ratePerSecond * actualDuration;
+        uint256 billable = actualDuration < e.minBillableSeconds ? 0 : actualDuration;
+        uint256 gross = e.ratePerSecond * billable;
         if (gross > e.amount) revert InvalidDuration();
 
         uint256 platformFee = (gross * PLATFORM_FEE_BPS) / BPS_DENOMINATOR;

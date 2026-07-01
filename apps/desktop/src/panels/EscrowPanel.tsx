@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { EscrowContract } from "../types";
 
-const TRANSITIONS = ["fund", "activate", "request_release", "settle", "dispute", "cancel"];
+const TRANSITIONS = ["fund", "activate", "settle_call", "request_release", "settle", "dispute", "cancel"];
 
 export function EscrowPanel() {
   const [escrows, setEscrows] = useState<EscrowContract[]>([]);
@@ -48,7 +48,7 @@ export function EscrowPanel() {
   return (
     <div className="panel">
       <h1>Escrow contracts</h1>
-      <p className="panel-sub">Validated by the Haskell rules engine · USDC funding via Circle</p>
+      <p className="panel-sub">USDC escrow · wallet balance required · 60s minimum billable</p>
       <form className="inline-form" onSubmit={handleCreate}>
         <input placeholder="Seller username" value={seller} onChange={(e) => setSeller(e.target.value)} required />
         <input placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} required />

@@ -4,6 +4,8 @@ export type UserAccount = {
   stellar_public_key: string;
   circle_wallet_address: string;
   masked_number: string;
+  personal_phone: string;
+  account_type: string;
   storage_paid: boolean;
 };
 
@@ -11,8 +13,10 @@ export type Contact = { name: string; number: string; company?: string };
 export type CallRecord = {
   id: string;
   number: string;
+  peer_name: string;
   direction: string;
   status: string;
+  caller_id_shown: string;
   started_at: number;
 };
 export type Invoice = {
@@ -29,6 +33,7 @@ export type PlaceCallResult = {
   telephony_available: boolean;
   message: string;
   masked_caller_id: string;
+  caller_id_shown: string;
   session_id: string;
   connected: boolean;
 };
@@ -58,15 +63,36 @@ export type EscrowContract = {
   currency: string;
   status: string;
   circleFundTxId?: string;
+  buyerBalance?: number;
+  minBillableSeconds?: number;
+  ratePerSecond?: number;
 };
 export type DashboardStats = {
   calls_count: number;
   contacts_count: number;
   escrows_active: number;
   escrow_engine_online: boolean;
+  telephony_engine_online: boolean;
+  personal_phone_connected: boolean;
+};
+export type SmsMessage = {
+  id: string;
+  from_name: string;
+  to_name: string;
+  body: string;
+  sent_at: number;
+  gift_usdc?: number;
+};
+export type CalendarEvent = {
+  id: string;
+  owner_name: string;
+  title: string;
+  starts_at: number;
+  ends_at: number;
+  with_name?: string;
 };
 
-export type AppSection = "dashboard" | "wallet" | "escrow" | "phone" | "settings";
+export type AppSection = "communications" | "messages" | "calendar" | "wallet" | "escrow" | "settings";
 
 export function validateStellarUsername(
   username: string,

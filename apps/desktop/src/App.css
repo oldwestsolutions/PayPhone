@@ -114,3 +114,30 @@ body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); co
 .list-plain { list-style: none; }
 .list-btn { width: 100%; text-align: left; background: none; border: none; color: var(--text); padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 14px; }
 .list-btn span { float: right; color: var(--muted); font-size: 12px; }
+
+/* RingCentral / iCloud polish */
+.rc-shell .shell-sidebar { backdrop-filter: blur(20px); background: rgba(17,17,17,0.92); }
+.rc-shell .shell-nav button { display: flex; align-items: center; gap: 10px; transition: background 0.2s ease, color 0.2s ease; }
+.rc-shell .shell-nav button:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+.rc-shell .shell-nav button.active { background: rgba(255,255,255,0.1); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
+.nav-icon { opacity: 0.7; font-size: 14px; }
+.glass { backdrop-filter: blur(12px); background: rgba(22,22,22,0.85) !important; }
+.comm-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+.comm-status-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill { font-size: 11px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+.pill.online { border-color: #22c55e44; color: #86efac; background: #14532d33; }
+.pill.warn { border-color: #f59e0b44; color: #fcd34d; }
+.restricted-badge { font-size: 10px; letter-spacing: 0.08em; padding: 2px 6px; border-radius: 4px; background: #27272a; color: #a1a1aa; margin-right: 8px; }
+.stat-value.small { font-size: 16px; }
+.sms-compose { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 16px; }
+.sms-compose textarea { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: #1a1a1a; color: var(--text); resize: vertical; }
+.sms-list, .calendar-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.sms-item, .calendar-item { padding: 14px; border-radius: 10px; border: 1px solid var(--border); }
+.gift-badge { margin-left: 8px; font-size: 11px; color: #86efac; }
+.calendar-time { display: block; font-size: 12px; color: var(--muted); margin-top: 4px; }
+.settings-panel label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+.settings-panel input, .settings-panel select { padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: #1a1a1a; color: var(--text); }
+.settings-panel h2 { font-size: 16px; margin-bottom: 12px; font-weight: 500; }
+.dialer .hint { text-align: center; max-width: 320px; font-size: 13px; color: var(--muted); }
+.dial-display { border-bottom: 1px solid var(--border) !important; padding-bottom: 8px; }
+.shell-main { scroll-behavior: smooth; }
