@@ -168,3 +168,140 @@ pub async fn fund_escrow(
 
     Ok(parsed.data.transaction)
 }
+
+#[derive(Debug, Deserialize)]
+struct SettleResponse {
+    data: SettleData,
+}
+
+#[derive(Debug, Deserialize)]
+struct SettleData {
+    seller_amount: f64,
+    platform_fee: f64,
+    refund_amount: f64,
+    simulated: bool,
+}
+
+pub async fn settle_escrow(
+    gateway_url: &str,
+    contract_id: &str,
+    escrow_amount: f64,
+    charge_amount: f64,
+    toll_amount: f64,
+    seller_wallet_address: &str,
+    buyer_wallet_address: &str,
+    from_party: &str,
+) -> Result<crate::models::SettlementResult, String> {
+    let url = format!("{}/api/escrow/settle", gateway_url.trim_end_matches('/'));
+    let body = serde_json::json!({
+        "contractId": contract_id,
+        "escrowAmount": escrow_amount,
+        "chargeAmount": charge_amount,
+        "tollAmount": toll_amount,
+        "sellerWalletAddress": seller_wallet_address,
+        "buyerWalletAddress": buyer_wallet_address,
+        "fromParty": from_party,
+    });
+
+    let resp = reqwest::Client::new()
+        .post(&url)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Gateway unreachable: {e}"))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let msg = resp.json::<ErrorBody>().await.ok().and_then(|b| b.error);
+        return Err(msg.unwrap_or_else(|| format!("Settlement error {status}")));
+    }
+
+    let parsed: SettleResponse = resp
+        .json()
+        .await
+        .map_err(|e| format!("Invalid settlement response: {e}"))?;
+
+    Ok(crate::models::SettlementResult {
+        seller_amount: parsed.data.seller_amount,
+        platform_fee: parsed.data.platform_fee,
+        refund_amount: parsed.data.refund_amount,
+        simulated: parsed.data.simulated,
+    })
+}
+
+#[derive(Debug, Deserialize)]
+struct TransferDataResponse {
+    data: TransferPayload,
+}
+
+#[derive(Debug, Deserialize)]
+struct TransferPayload {
+    transaction: CircleTransferResult,
+    amount_sent: f64,
+    recipient_amount: f64,
+    platform_fee: f64,
+    simulated: bool,
+}
+
+pub async fn send_usdc_transfer(
+    gateway_url: &str,
+    wallet_id: &str,
+    destination_address: &str,
+    amount: f64,
+    from_party: &str,
+) -> Result<crate::models::SendUsdcResult, String> {
+    if wallet_id.starts_with("circle-demo-") && demo_mode() {
+        let (fee, recipient) = crate::platform_fee::calculate_p2p_fee(amount);
+        return Ok(crate::models::SendUsdcResult {
+            transaction_id: format!("demo-send-{}", uuid_simple()),
+            amount_sent: amount,
+            recipient_amount: recipient,
+            platform_fee: fee,
+            simulated: true,
+        });
+    }
+
+    let url = format!("{}/api/transfer", gateway_url.trim_end_matches('/'));
+    let body = serde_json::json!({
+        "walletId": wallet_id,
+        "destinationAddress": destination_address,
+        "amount": format!("{amount:.2}"),
+        "fromParty": from_party,
+        "collectPlatformFee": true,
+    });
+
+    let resp = reqwest::Client::new()
+        .post(&url)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Gateway unreachable: {e}"))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let msg = resp.json::<ErrorBody>().await.ok().and_then(|b| b.error);
+        return Err(msg.unwrap_or_else(|| format!("Transfer error {status}")));
+    }
+
+    let parsed: TransferDataResponse = resp
+        .json()
+        .await
+        .map_err(|e| format!("Invalid transfer response: {e}"))?;
+
+    Ok(crate::models::SendUsdcResult {
+        transaction_id: parsed.data.transaction.id,
+        amount_sent: parsed.data.amount_sent,
+        recipient_amount: parsed.data.recipient_amount,
+        platform_fee: parsed.data.platform_fee,
+        simulated: parsed.data.simulated,
+    })
+}
+
+fn uuid_simple() -> String {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let t = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    format!("{t}")
+}

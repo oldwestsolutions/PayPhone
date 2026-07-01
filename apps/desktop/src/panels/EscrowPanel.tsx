@@ -65,9 +65,9 @@ export function EscrowPanel() {
   }
 
   return (
-    <div className="panel">
-      <h1>Escrow contracts</h1>
-      <p className="panel-sub">Haskell escrow engine · standard · marketing · supply chain · 60s minimum billable</p>
+    <div className="panel panel-wide">
+      <h1>Orders</h1>
+      <p className="panel-sub">Fiverr-style escrow · fund · deliver · settle · 5% platform fee on settlement</p>
 
       <div className="phone-tabs">
         {(["standard", "marketing", "supply"] as const).map((t) => (
@@ -111,12 +111,12 @@ export function EscrowPanel() {
         <ul className="escrow-list">
           {escrows.length === 0 && <li className="empty">No escrows yet</li>}
           {escrows.map((e) => (
-            <li key={e.contractId} className="escrow-item">
-              <div>
-                <strong>{e.contractId}</strong>
-                <span>{e.buyerId} → {e.sellerId} · {e.amount} {e.currency}</span>
-                <span className="escrow-status">{e.status}</span>
-              </div>
+            <li key={e.contractId} className="order-card" style={{ listStyle: "none" }}>
+              <h4>{e.contractId}</h4>
+              <p className="order-meta">{e.buyerId} → {e.sellerId} · {e.amount} {e.currency}</p>
+              <span className={`order-status ${e.status === "Settled" ? "settled" : e.status === "Active" ? "active" : "draft"}`}>
+                {e.status}
+              </span>
               <div className="escrow-actions">
                 {TRANSITIONS.map((t) => (
                   <button

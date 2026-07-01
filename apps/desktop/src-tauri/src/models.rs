@@ -31,6 +31,16 @@ pub struct UserAccount {
     pub storage_credits_gib: f64,
     #[serde(default)]
     pub comms_credits: f64,
+    #[serde(default)]
+    pub phone: String,
+    #[serde(default)]
+    pub access_token: Option<String>,
+    #[serde(default = "default_role")]
+    pub role: String,
+}
+
+fn default_role() -> String {
+    "user".into()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,6 +60,12 @@ pub struct PublicUser {
     pub storage_credits_gib: f64,
     #[serde(default)]
     pub comms_credits: f64,
+    #[serde(default)]
+    pub phone: String,
+    #[serde(default = "default_role")]
+    pub role: String,
+    #[serde(default)]
+    pub access_token: Option<String>,
 }
 
 impl From<UserAccount> for PublicUser {
@@ -65,6 +81,9 @@ impl From<UserAccount> for PublicUser {
             storage_paid: u.storage_paid,
             storage_credits_gib: u.storage_credits_gib,
             comms_credits: u.comms_credits,
+            phone: u.phone.clone(),
+            role: u.role.clone(),
+            access_token: u.access_token.clone(),
         }
     }
 }
@@ -245,3 +264,72 @@ pub struct DashboardStats {
     pub telephony_engine_online: bool,
     pub personal_phone_connected: bool,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ProcurementMilestone {
+    pub id: String,
+    pub name: String,
+    pub release_pct: f64,
+    #[serde(default)]
+    pub release_amount: f64,
+    pub condition: String,
+    pub status: String,
+    #[serde(default)]
+    pub completed_at: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ProgrammableCommitment {
+    pub commitment_id: String,
+    pub buyer_id: String,
+    pub supplier_id: String,
+    #[serde(default)]
+    pub line_items: Vec<serde_json::Value>,
+    pub total_amount: f64,
+    pub currency: String,
+    pub milestones: Vec<ProcurementMilestone>,
+    pub status: String,
+    #[serde(default)]
+    pub released_total: f64,
+    #[serde(default)]
+    pub created_at: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformRevenue {
+    pub month_total_usdc: f64,
+    pub all_time_total_usdc: f64,
+    #[serde(default)]
+    pub by_type: std::collections::HashMap<String, f64>,
+    pub count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformWallet {
+    pub simulated: bool,
+    pub wallet_id: Option<String>,
+    pub address: Option<String>,
+    pub usdc_balance: String,
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SendUsdcResult {
+    pub transaction_id: String,
+    pub amount_sent: f64,
+    pub recipient_amount: f64,
+    pub platform_fee: f64,
+    pub simulated: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SettlementResult {
+    pub seller_amount: f64,
+    pub platform_fee: f64,
+    pub refund_amount: f64,
+    pub simulated: bool,
+}
+

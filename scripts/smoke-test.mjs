@@ -151,6 +151,72 @@ async function main() {
     if (!r.data?.totalUsdc) throw new Error("no quote");
   });
 
+  await check("Procurement commitment + fund + milestone", async () => {
+    const created = await json(`${GATEWAY}/api/procurement/commitments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        buyerId: "alice.42line",
+        supplierId: "bob.99test",
+        totalAmount: 1000,
+        buyerBalance: 5000,
+        lineItems: [{ sku: "WIDGET-1", quantity: 10 }],
+      }),
+    });
+    const id = created.data?.commitment_id;
+    if (!id) throw new Error("no commitment");
+    const funded = await json(`${GATEWAY}/api/procurement/commitments/${id}/fund`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        walletId: "circle-demo-alice",
+        requesterId: "alice.42line",
+      }),
+    });
+    if (funded.data?.commitment?.status !== "funded") throw new Error("fund failed");
+    const accepted = await json(`${GATEWAY}/api/procurement/commitments/${id}/transition`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestType: "accept", requesterId: "bob.99test" }),
+    });
+    if (accepted.data?.status !== "active") throw new Error("accept failed");
+  });
+
+  await check("Escrow settlement with platform fee", async () => {
+    const r = await json(`${GATEWAY}/api/escrow/settle`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contractId: "esc-smoke-1",
+        escrowAmount: 10,
+        chargeAmount: 10,
+        sellerWalletAddress: "0xseller",
+        buyerWalletAddress: "0xbuyer",
+        fromParty: "alice.42line",
+      }),
+    });
+    if (!r.data?.platform_fee) throw new Error("no platform fee");
+  });
+
+  await check("P2P transfer with fee", async () => {
+    const r = await json(`${GATEWAY}/api/transfer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        walletId: "circle-demo-alice",
+        destinationAddress: "0xrecipient",
+        amount: "100",
+        fromParty: "alice.42line",
+      }),
+    });
+    if (r.data?.platform_fee == null) throw new Error("no fee");
+  });
+
+  await check("Platform revenue endpoint", async () => {
+    const r = await json(`${GATEWAY}/api/platform/revenue`);
+    if (r.data?.all_time_total_usdc == null) throw new Error("no revenue data");
+  });
+
   console.log(`\n${passed} passed, ${failed} failed`);
   process.exit(failed > 0 ? 1 : 0);
 }

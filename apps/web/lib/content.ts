@@ -20,9 +20,9 @@ export const topNav: NavItem[] = [
 ];
 
 export const hero = {
-  title: "Call anyone. Keep your number private.",
+  title: "Call anyone. Pay in USDC. Ship with escrow.",
   subtitle:
-    "Payphone is the phone app for people who travel, trade, and do business across borders—clear voice, simple messaging, and a number that works everywhere you do.",
+    "Payphone is a financial communications app—crystal-clear voice, iMessage-style messaging, Circle mainnet wallets, Fiverr-style orders with escrow, procurement milestones, job bonds, and admin arbitration when disputes arise.",
   disclaimer: "* Standard data rates may apply depending on your carrier and region.",
   ctaPrimary: "Download App",
   ctaPrimaryHref: "/download",
@@ -49,7 +49,7 @@ export const hero = {
 
 export const introBand = {
   title:
-    "Whether you're closing a deal overseas or catching up with family abroad, Payphone keeps you connected—with the polish of a private line and the ease of an app.",
+    "One app for calls, USDC payments, escrow orders, procurement, and bonds—every value flow routed through a unified payment layer with transparent platform fees.",
 };
 
 export const featureSections = [
@@ -98,14 +98,36 @@ export const featureSections = [
     dark: true as const,
   },
   {
-    id: "business",
-    eyebrow: "For growing teams",
-    title: "A phone system that scales with you",
-    body: "From solo operators to distributed teams, Payphone gives you a professional presence on day one. Simple setup. Transparent pricing. No hardware closet required.",
-    cta: "Talk to us",
-    ctaHref: "/business",
+    id: "wallet",
+    eyebrow: "Circle mainnet USDC",
+    title: "Cash App–style wallet on Polygon",
+    body: "Every registered user gets a Circle programmable wallet. Send USDC peer-to-peer, pay tolls, and fund escrow—all with platform fees applied consistently through the payment layer.",
+    cta: "Create account",
+    ctaHref: "/account",
     imageSide: "right" as const,
-    accent: "bg-luxury-panel border-y border-luxury-border",
+    accent: "bg-luxury-dark",
+    dark: true as const,
+  },
+  {
+    id: "escrow",
+    eyebrow: "Orders & escrow",
+    title: "Fiverr-style gigs with on-chain settlement",
+    body: "Buyers fund escrow; sellers deliver milestones. Disputes go to admin arbitration with claims, appeals ($10 USDC), and outcomes recorded in MongoDB.",
+    cta: "See orders",
+    ctaHref: "/account",
+    imageSide: "left" as const,
+    accent: "bg-luxury-black",
+    dark: true as const,
+  },
+  {
+    id: "procurement",
+    eyebrow: "Procurement & bonds",
+    title: "Ship goods with programmable commitments",
+    body: "Procurement milestones release USDC when conditions are met. Post job bonds enforced through administrative intervention if work is forfeited.",
+    cta: "Download app",
+    ctaHref: "/download",
+    imageSide: "right" as const,
+    accent: "bg-luxury-dark",
     dark: true as const,
   },
 ] as const;
@@ -113,9 +135,9 @@ export const featureSections = [
 export const executiveSummary = {
   title: "Why people choose Payphone",
   paragraphs: [
-    "Payphone is a modern communications app for anyone who needs a dependable line without handing out their personal number.",
-    "Make calls, send messages, and manage contacts from one beautiful desktop app—whether you're working internationally or simply want a cleaner way to stay in touch.",
-    "Choose the storage plan that fits you, pay securely, and get back to what matters: the conversation.",
+    "Payphone combines RingCentral-style calling with a unified payment layer—every transfer, swap, escrow, and procurement flow becomes a structured payment intent.",
+    "Register with email and phone at payphone.cc. Only verified accounts can place calls, move USDC on Circle mainnet, or open escrow orders.",
+    "Platform fees are centralized in the payment layer. Disputes and appeals are adjudicated by admin staff—outcomes written to MongoDB for audit and replay.",
   ],
 };
 
@@ -139,11 +161,12 @@ export const problemMarkets = [
 ] as const;
 
 export const architectureServices = [
-  { name: "Voice & messaging", body: "Reliable calls and texts from the app you already have open." },
-  { name: "Private lines", body: "A dedicated Payphone number that isn't tied to your personal SIM." },
-  { name: "Contacts & history", body: "Your address book and call log—securely stored when you activate storage." },
-  { name: "Team dashboard", body: "See who's available and how fast your team responds." },
-  { name: "Secure payments", body: "Activate storage and services with Bitcoin via BTCPay—simple and transparent." },
+  { name: "Voice & messaging", body: "Dial pad, calls, SMS-style threads, and masked lines—open the app and call." },
+  { name: "Payment layer", body: "All value movement normalized into Payment objects with deterministic state and immutable events." },
+  { name: "Circle USDC", body: "Programmable wallets on mainnet—P2P transfers, escrow funding, and settlement." },
+  { name: "Escrow & procurement", body: "Milestone releases, programmable commitments, and Fiverr-style order tracking." },
+  { name: "Bonds & arbitration", body: "Job collateral, disputes, claims, paid appeals, and admin resolution." },
+  { name: "BTCPay storage", body: "$9.99/mo Bitcoin billing for contacts, call history, and comms credits." },
 ] as const;
 
 export const caseStudies = [
@@ -223,12 +246,13 @@ export const downloadPlatforms = [
 ] as const;
 
 export const desktopFeatures = [
-  "RingCentral-style phone app—dial pad, calls, contacts, messages",
-  "Splash screen with classic bell branding",
-  "Stellar username—your unique identity on the network",
-  "Circle wallet created automatically when you sign up",
-  "1 GB storage unlock via BTCPayServer (contacts & call history)",
-  "Crystal-clear voice built for international communications",
+  "Opens to Phone—dial pad and place calls immediately after sign-in",
+  "Register with email + phone (no demo logins)",
+  "Circle mainnet USDC wallet created on signup",
+  "Payment layer: transfers, escrow, procurement, swaps, appeals",
+  "Fiverr-style orders, bonds, and admin dispute panel",
+  "iMessage-style messaging and Cash App–style wallet UI",
+  "$9.99/mo storage via BTCPayServer (contacts & call history)",
 ] as const;
 
 export type DirectoryEntry = {

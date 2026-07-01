@@ -1,6 +1,9 @@
 export type UserAccount = {
   username: string;
   email: string;
+  phone?: string;
+  role?: string;
+  access_token?: string;
   stellar_public_key: string;
   circle_wallet_address: string;
   masked_number: string;
@@ -145,7 +148,72 @@ export type CallRecording = {
   createdAt: number;
 };
 
-export type AppSection = "communications" | "messages" | "calendar" | "wallet" | "pay" | "escrow" | "settings";
+export type ProgrammableCommitment = {
+  commitment_id: string;
+  buyer_id: string;
+  supplier_id: string;
+  line_items: unknown[];
+  total_amount: number;
+  currency: string;
+  milestones: ProcurementMilestone[];
+  status: string;
+  released_total?: number;
+  created_at?: number;
+};
+
+export type ProcurementMilestone = {
+  id: string;
+  name: string;
+  release_pct: number;
+  release_amount?: number;
+  condition: string;
+  status: string;
+  completed_at?: number;
+};
+
+export type PlatformRevenue = {
+  month_total_usdc: number;
+  all_time_total_usdc: number;
+  by_type: Record<string, number>;
+  count: number;
+};
+
+export type PlatformWallet = {
+  simulated: boolean;
+  wallet_id: string | null;
+  address: string | null;
+  usdc_balance: string;
+  note?: string;
+};
+
+export type SendUsdcResult = {
+  transaction_id: string;
+  amount_sent: number;
+  recipient_amount: number;
+  platform_fee: number;
+  simulated: boolean;
+};
+
+export type SettlementResult = {
+  seller_amount: number;
+  platform_fee: number;
+  refund_amount: number;
+  simulated: boolean;
+};
+
+export type AppSection =
+  | "home"
+  | "communications"
+  | "messages"
+  | "calendar"
+  | "wallet"
+  | "pay"
+  | "escrow"
+  | "procurement"
+  | "bonds"
+  | "admin"
+  | "business"
+  | "settings";
 
 export function validateStellarUsername(
   username: string,

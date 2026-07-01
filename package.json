@@ -5,7 +5,8 @@
     "apps/web",
     "apps/desktop",
     "apps/gateway",
-    "apps/mask-proxy"
+    "apps/mask-proxy",
+    "packages/payment-layer"
   ],
   "scripts": {
     "dev": "npm run dev -w @payphone/web",

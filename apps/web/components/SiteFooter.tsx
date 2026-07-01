@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bell } from "@/components/Bell";
+import { PhoneIcon } from "@/components/PhoneIcon";
 import { footerColumns, site } from "@/lib/content";
 
 export function SiteFooter() {
@@ -10,11 +10,11 @@ export function SiteFooter() {
         <div className="flex flex-col lg:flex-row gap-12 lg:gap-8 justify-between">
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <Bell size={40} />
+              <PhoneIcon size={40} />
               <span className="font-display text-3xl font-light text-white">{site.brand}</span>
             </div>
             <p className="text-sm text-luxury-gray max-w-xs leading-relaxed">
-              International tele communications for people who expect privacy, clarity, and a phone that simply works.
+              Call, pay, and ship on one line—USDC wallet, escrow orders, procurement, bonds, and admin arbitration when disputes arise.
             </p>
             <Link href="/download" className="btn-download inline-flex">
               Download

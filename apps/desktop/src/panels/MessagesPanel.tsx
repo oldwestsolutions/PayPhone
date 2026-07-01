@@ -1,11 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { SmsMessage, UserAccount } from "../types";
-
-function sigPreview(sig?: string): string {
-  if (!sig) return "—";
-  return sig.length > 16 ? `${sig.slice(0, 16)}…` : sig;
-}
 
 export function MessagesPanel({ user }: { user: UserAccount }) {
   const [messages, setMessages] = useState<SmsMessage[]>([]);
@@ -13,7 +8,7 @@ export function MessagesPanel({ user }: { user: UserAccount }) {
   const [body, setBody] = useState("");
   const [gift, setGift] = useState("");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [activeChat, setActiveChat] = useState<string | null>(null);
 
   function refresh() {
     invoke<SmsMessage[]>("get_sms_messages").then(setMessages).catch(() => setMessages([]));
@@ -23,20 +18,37 @@ export function MessagesPanel({ user }: { user: UserAccount }) {
     refresh();
   }, []);
 
+  const threads = useMemo(() => {
+    const map = new Map<string, SmsMessage[]>();
+    for (const m of messages) {
+      const peer = m.fromName === user.username ? m.toName : m.fromName;
+      if (!map.has(peer)) map.set(peer, []);
+      map.get(peer)!.push(m);
+    }
+    return [...map.entries()].sort((a, b) => {
+      const ta = a[1][a[1].length - 1]?.sentAt ?? 0;
+      const tb = b[1][b[1].length - 1]?.sentAt ?? 0;
+      return tb - ta;
+    });
+  }, [messages, user.username]);
+
+  const chatMessages = activeChat
+    ? messages.filter((m) => m.fromName === activeChat || m.toName === activeChat)
+    : [];
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    const target = activeChat || toName.trim().replace(/^@/, "");
     try {
-      const sent = await invoke<SmsMessage>("send_sms", {
-        toName: toName.trim(),
+      await invoke<SmsMessage>("send_sms", {
+        toName: target,
         body,
         giftUsdc: gift ? parseFloat(gift) : null,
       });
       setBody("");
       setGift("");
-      setNotice(
-        `Message sent with Stellar digital signature (${sigPreview(sent.digitalSignature)}). Recipient sees @${user.username} only.`
-      );
+      if (!activeChat) setActiveChat(target);
       refresh();
     } catch (err) {
       setError(String(err));
@@ -44,47 +56,76 @@ export function MessagesPanel({ user }: { user: UserAccount }) {
   }
 
   return (
-    <div className="panel">
+    <div className="panel panel-wide">
       <h1>Messages</h1>
-      <p className="panel-sub">
-        SMS via Stellar names · SHA-256 digital signatures · {user.account_type === "business" ? "Business tolls enabled" : "Offer a gift to open your message"}
-      </p>
+      <p className="panel-sub">iMessage-style · Stellar-signed · optional USDC gift</p>
 
-      <form className="sms-compose glass" onSubmit={send}>
-        <input placeholder="To @stellar.name" value={toName} onChange={(e) => setToName(e.target.value)} required />
-        <textarea placeholder="Message" value={body} onChange={(e) => setBody(e.target.value)} required rows={3} />
-        <input
-          placeholder="Gift USDC (optional — anyone can offer)"
-          value={gift}
-          onChange={(e) => setGift(e.target.value)}
-          type="number"
-          step="0.01"
-          min="0"
-        />
-        <button type="submit" className="btn-primary" disabled={!user.personal_phone}>
-          Send signed SMS
-        </button>
-      </form>
-      {!user.personal_phone && <p className="error">Connect your phone line in Settings to send messages.</p>}
+      <div style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16, minHeight: 480 }}>
+        <div className="glass" style={{ borderRadius: 12, padding: 8, border: "1px solid var(--border)" }}>
+          <p className="hint" style={{ padding: "8px 10px" }}>Chats</p>
+          {threads.length === 0 && <p className="empty" style={{ padding: 10 }}>No conversations</p>}
+          {threads.map(([peer, msgs]) => (
+            <button
+              key={peer}
+              type="button"
+              className="list-btn"
+              style={{ borderRadius: 8, padding: "10px 12px", marginBottom: 4 }}
+              onClick={() => setActiveChat(peer)}
+            >
+              <strong>@{peer}</strong>
+              <span style={{ display: "block", fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+                {msgs[msgs.length - 1]?.body?.slice(0, 40)}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="chat-layout" style={{ height: "auto", minHeight: 480, border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
+          {activeChat ? (
+            <>
+              <div className="chat-header">
+                <div className="chat-avatar">{activeChat[0]?.toUpperCase()}</div>
+                <div>
+                  <strong>@{activeChat}</strong>
+                  <p className="hint" style={{ fontSize: 11 }}>End-to-end Stellar signature</p>
+                </div>
+              </div>
+              <div className="chat-thread">
+                {chatMessages.map((m) => {
+                  const out = m.fromName === user.username;
+                  return (
+                    <div key={m.id} className={`bubble ${out ? "out" : "in"}`}>
+                      {m.body}
+                      {m.giftUsdc != null && (
+                        <div className="bubble-meta">🎁 {m.giftUsdc} USDC</div>
+                      )}
+                      <div className="bubble-meta">
+                        {new Date(m.sentAt * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <form className="chat-compose" onSubmit={send}>
+                <input placeholder="Gift USDC (opt)" value={gift} onChange={(e) => setGift(e.target.value)} style={{ maxWidth: 100 }} />
+                <textarea placeholder="Message" value={body} onChange={(e) => setBody(e.target.value)} required rows={1} />
+                <button type="submit" disabled={!user.personal_phone}>➤</button>
+              </form>
+            </>
+          ) : (
+            <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
+              Select a chat or start below
+              <form className="send-form" style={{ marginTop: 24, textAlign: "left" }} onSubmit={(e) => { setActiveChat(toName.replace(/^@/, "")); send(e); }}>
+                <input placeholder="New chat: @username" value={toName} onChange={(e) => setToName(e.target.value)} required />
+                <textarea placeholder="First message" value={body} onChange={(e) => setBody(e.target.value)} required rows={2} />
+                <button type="submit" className="btn-primary" disabled={!user.personal_phone}>Start chat</button>
+              </form>
+            </div>
+          )}
+        </div>
+      </div>
       {error && <p className="error">{error}</p>}
-      {notice && <p className="call-status">{notice}</p>}
-
-      <ul className="sms-list">
-        {messages.length === 0 && <li className="empty">No messages yet.</li>}
-        {messages.map((m) => (
-          <li key={m.id} className="sms-item glass">
-            <strong>@{m.fromName}</strong> → @{m.toName}
-            {m.giftUsdc != null && <span className="gift-badge">{m.giftUsdc} USDC gift</span>}
-            <p>{m.body}</p>
-            <p className="hint sig-line">
-              Stellar key: {m.stellarPublicKey || "—"} · Signature: {sigPreview(m.digitalSignature)}
-              {m.digitalSignature && m.digitalSignature.length >= 32 && (
-                <span className="pill online" style={{ marginLeft: 8 }}>verified</span>
-              )}
-            </p>
-          </li>
-        ))}
-      </ul>
+      {!user.personal_phone && <p className="error">Connect your phone line in Settings to send messages.</p>}
     </div>
   );
 }

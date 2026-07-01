@@ -1,0 +1,30 @@
+---
+description: PayPhone.cc V5.0 build specification — architecture, escrow, procurement, SDK
+alwaysApply: true
+---
+
+# PayPhone V5.0 Build Specification
+
+The authoritative engineering spec is `docs/PAYPHONE-V5-BUILD-SPEC.md`.
+
+## Core principles
+
+- Haskell telephony (4010) and escrow (4004) engines are the source of truth for validation; Rust/Node execute money movement only after engine authorization.
+- Circle USDC is the primary settlement rail; Stellar is identity + SMS signing; BTCPay is subscriptions only.
+- Caller ID is always `RESTRICTED`; real numbers never exposed to counterparty.
+- Platform fees are compile-time constants in `platform_fee.rs` (5% settlement, 10% toll commission, 1% bond return if held >7 days, 10% bond forfeiture).
+- Recordings are local-device only; MongoDB stores metadata and consent signatures, not audio.
+
+## Section 9: Procurement
+
+PayPhone is a programmable agreement engine, not only payments. **Programmable Commitments** extend supply-chain escrow with milestone-based partial releases, multi-party approvals, and ERP/WMS/TMS integration via API + Redis events (`payphone:procurement:*`).
+
+When implementing procurement: extend `Escrow/Procurement.hs`, add `programmable_commitments` MongoDB collection, gateway `/api/procurement/*` routes, and `payphone-sdk` `procurement.ts` module.
+
+## Build order
+
+Follow Phase 1–8 in spec Section 23: stabilize shims (MongoDB + Redis) → bond service → recording → Uniswap → platform fees → SDK → smoke tests.
+
+## Demo mode
+
+`PAYPHONE_DEMO_MODE=true` (default without live Circle keys): deterministic wallets, 1000 USDC balance, full UI flow without real transfers.

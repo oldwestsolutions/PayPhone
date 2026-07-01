@@ -13,6 +13,8 @@ const store = {
   standard: new Map(),
   marketing: new Map(),
   supplyChain: new Map(),
+  procurement: new Map(),
+  auditLog: [],
 };
 
 function transitionStandard(c, req) {
@@ -178,6 +180,146 @@ app.post("/supply-chain/:id/transition", (req, res) => {
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
+});
+
+function buildMilestones(milestones = []) {
+  return milestones.map((m, i) => ({
+    id: m.id || `ms-${i + 1}`,
+    name: m.name || `Milestone ${i + 1}`,
+    release_pct: Number(m.releasePct ?? m.release_pct ?? 0),
+    release_amount: 0,
+    condition: m.condition || "manual",
+    status: "pending",
+    completed_at: null,
+  }));
+}
+
+function transitionProcurement(c, req) {
+  const { requestType, requesterId, milestoneId } = req;
+  const next = { ...c, milestones: c.milestones.map((m) => ({ ...m })) };
+  const okParty = (id) =>
+    c.parties.some((p) => p.stellar_name === id || p.stellarName === id);
+
+  if (requestType === "fund" && c.status === "draft") {
+    if (requesterId !== c.buyer_id) throw new Error("Only buyer can fund");
+    next.status = "funded";
+    next.funded_at = Date.now();
+    return next;
+  }
+  if (requestType === "accept" && c.status === "funded") {
+    if (requesterId !== c.supplier_id) throw new Error("Only supplier can accept");
+    next.status = "active";
+    next.activated_at = Date.now();
+    return next;
+  }
+  if (requestType === "release_milestone" && c.status === "active") {
+    if (!okParty(requesterId)) throw new Error("Only parties can release milestones");
+    const ms = next.milestones.find((m) => m.id === milestoneId);
+    if (!ms) throw new Error("Milestone not found");
+    if (ms.status === "released") throw new Error("Milestone already released");
+    const releaseAmount = Math.round(c.total_amount * (ms.release_pct / 100) * 100) / 100;
+    ms.release_amount = releaseAmount;
+    ms.status = "released";
+    ms.completed_at = Date.now();
+    next.released_total = (next.released_total || 0) + releaseAmount;
+    store.auditLog.push({
+      commitment_id: c.commitment_id,
+      event: "MILESTONE_RELEASED",
+      milestone_id: ms.id,
+      amount: releaseAmount,
+      at: Date.now(),
+    });
+    const allReleased = next.milestones.every((m) => m.status === "released");
+    if (allReleased) next.status = "completed";
+    return next;
+  }
+  if (requestType === "dispute" && c.status === "active") {
+    if (!okParty(requesterId)) throw new Error("Only parties can dispute");
+    next.status = "disputed";
+    return next;
+  }
+  if (requestType === "cancel" && (c.status === "draft" || c.status === "funded")) {
+    next.status = "cancelled";
+    return next;
+  }
+  throw new Error(`Invalid transition '${requestType}' from ${c.status}`);
+}
+
+app.post("/procurement", (req, res) => {
+  const p = req.body || {};
+  const buyerBalance = Number(p.buyerBalance ?? p.buyer_balance ?? 0);
+  const totalAmount = Number(p.totalAmount ?? p.total_amount ?? 0);
+  if (buyerBalance < totalAmount) {
+    return res.status(400).json({ error: "Insufficient wallet balance for commitment" });
+  }
+  const milestones = buildMilestones(p.milestones || [
+    { name: "Production", releasePct: 20 },
+    { name: "Shipped", releasePct: 30 },
+    { name: "Inspection", releasePct: 30 },
+    { name: "Acceptance", releasePct: 20 },
+  ]);
+  const pctSum = milestones.reduce((s, m) => s + m.release_pct, 0);
+  if (pctSum > 100.01) {
+    return res.status(400).json({ error: "Milestone release percentages exceed 100%" });
+  }
+  const commitmentId = p.commitmentId || `pc-${Date.now()}`;
+  const c = {
+    commitment_id: commitmentId,
+    buyer_id: p.buyerId || p.buyer_id,
+    supplier_id: p.supplierId || p.supplier_id,
+    line_items: p.lineItems || p.line_items || [],
+    total_amount: totalAmount,
+    currency: p.currency || "USDC",
+    milestones,
+    parties: p.parties || [
+      { role: "buyer", stellar_name: p.buyerId || p.buyer_id },
+      { role: "supplier", stellar_name: p.supplierId || p.supplier_id },
+    ],
+    status: "draft",
+    buyer_balance: buyerBalance,
+    released_total: 0,
+    created_at: Date.now(),
+  };
+  store.procurement.set(commitmentId, c);
+  store.auditLog.push({ commitment_id: commitmentId, event: "COMMITMENT_CREATED", at: Date.now() });
+  res.status(201).json(c);
+});
+
+app.get("/procurement", (req, res) => {
+  const party = String(req.query.party || "").trim();
+  let list = [...store.procurement.values()];
+  if (party) {
+    list = list.filter(
+      (c) => c.buyer_id === party || c.supplier_id === party ||
+        c.parties?.some((p) => p.stellar_name === party)
+    );
+  }
+  res.json(list);
+});
+
+app.get("/procurement/:id", (req, res) => {
+  const c = store.procurement.get(req.params.id);
+  if (!c) return res.status(404).json({ error: "Commitment not found" });
+  res.json(c);
+});
+
+app.post("/procurement/:id/transition", (req, res) => {
+  const c = store.procurement.get(req.params.id);
+  if (!c) return res.status(400).json({ error: "Commitment not found" });
+  try {
+    const updated = transitionProcurement(c, req.body);
+    store.procurement.set(req.params.id, updated);
+    res.json(updated);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.get("/procurement/:id/audit", (req, res) => {
+  const c = store.procurement.get(req.params.id);
+  if (!c) return res.status(404).json({ error: "Commitment not found" });
+  const events = store.auditLog.filter((e) => e.commitment_id === req.params.id);
+  res.json({ commitment: c, events });
 });
 
 app.listen(PORT, () => {
