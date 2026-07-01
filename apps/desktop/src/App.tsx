@@ -36,10 +36,21 @@ function AuthScreen({ onSuccess }: { onSuccess: (u: UserAccount) => void }) {
     setError("");
     try {
       if (mode === "register") {
-        const r = await invoke<{ username: string; stellar_public_key: string; circle_wallet_address: string; storage_paid: boolean }>(
-          "register_account", { username, email, password }
-        );
-        onSuccess({ username: r.username, email, stellar_public_key: r.stellar_public_key, circle_wallet_address: r.circle_wallet_address, storage_paid: r.storage_paid });
+        const r = await invoke<{
+          username: string;
+          stellar_public_key: string;
+          circle_wallet_address: string;
+          masked_number: string;
+          storage_paid: boolean;
+        }>("register_account", { username, email, password });
+        onSuccess({
+          username: r.username,
+          email,
+          stellar_public_key: r.stellar_public_key,
+          circle_wallet_address: r.circle_wallet_address,
+          masked_number: r.masked_number,
+          storage_paid: r.storage_paid,
+        });
       } else {
         onSuccess(await invoke<UserAccount>("login_account", { username, password }));
       }
@@ -55,15 +66,36 @@ function AuthScreen({ onSuccess }: { onSuccess: (u: UserAccount) => void }) {
       <form className="auth-card" onSubmit={handleSubmit}>
         <Bell className="auth-bell" />
         <h1>{mode === "login" ? "Sign in" : "Create account"}</h1>
+        <p className="hint">
+          Demo: sign in with any username and password to explore the UI. Masked calls require a
+          Stellar username (7–22 chars, must include a number).
+        </p>
         <div className="auth-tabs">
-          <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Log in</button>
-          <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Register</button>
+          <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>
+            Log in
+          </button>
+          <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>
+            Register
+          </button>
         </div>
-        <label>Username<input value={username} onChange={(e) => setUsername(e.target.value)} required /></label>
-        {mode === "register" && <label>Email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></label>}
-        <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></label>
+        <label>
+          Username
+          <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+        </label>
+        {mode === "register" && (
+          <label>
+            Email
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
+        )}
+        <label>
+          Password
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </label>
         {error && <p className="error">{error}</p>}
-        <button type="submit" className="btn-primary" disabled={loading}>{loading ? "…" : "Continue"}</button>
+        <button type="submit" className="btn-primary" disabled={loading}>
+          {loading ? "…" : "Continue"}
+        </button>
       </form>
     </div>
   );
@@ -80,10 +112,7 @@ function PaywallScreen({ user, onActivated }: { user: UserAccount; onActivated: 
     try {
       const b = await invoke<BillingStatus>("get_billing_status");
       setBilling(b);
-      if (!b.btcpay_configured) {
-        setError("Configure BTCPayServer (PAYPHONE_BTCPAY_API_KEY + STORE_ID) and restart.");
-        return;
-      }
+      if (!b.btcpay_configured) return;
       setInvoice(await invoke<Invoice>("create_storage_invoice"));
     } catch (err) {
       setError(String(err));
@@ -92,7 +121,9 @@ function PaywallScreen({ user, onActivated }: { user: UserAccount; onActivated: 
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   return (
     <div className="auth-screen">
@@ -102,13 +133,51 @@ function PaywallScreen({ user, onActivated }: { user: UserAccount; onActivated: 
         {billing && <p className="hint">BTCPay: {billing.btcpay_url}</p>}
         {invoice && <p className="invoice-amt">${invoice.amount} {invoice.currency}</p>}
         {error && <p className="error">{error}</p>}
-        <button type="button" className="btn-primary" disabled={!invoice} onClick={() => invoice && invoke("open_url", { url: invoice.checkout_link })}>Pay with Bitcoin</button>
-        <button type="button" className="btn-secondary" disabled={!invoice || busy} onClick={async () => {
-          if (!invoice) return;
-          setBusy(true);
-          try { onActivated(await invoke<UserAccount>("verify_and_activate_storage", { invoiceId: invoice.id })); }
-          catch (e) { setError(String(e)); } finally { setBusy(false); }
-        }}>Verify payment</button>
+        {invoice && (
+          <>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => invoice && invoke("open_url", { url: invoice.checkout_link })}
+            >
+              Pay with Bitcoin
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                try {
+                  onActivated(await invoke<UserAccount>("verify_and_activate_storage", { invoiceId: invoice.id }));
+                } catch (e) {
+                  setError(String(e));
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              Verify payment
+            </button>
+          </>
+        )}
+        <button
+          type="button"
+          className="btn-secondary"
+          disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            try {
+              onActivated(await invoke<UserAccount>("demo_activate_storage"));
+            } catch (e) {
+              setError(String(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Continue in demo mode
+        </button>
       </div>
     </div>
   );
@@ -122,7 +191,10 @@ export default function App() {
   function afterSplash() {
     invoke<UserAccount | null>("get_session")
       .then((s) => {
-        if (!s) { setPhase("auth"); return; }
+        if (!s) {
+          setPhase("auth");
+          return;
+        }
         setUser(s);
         setPhase(s.storage_paid ? "app" : "paywall");
       })
@@ -136,8 +208,26 @@ export default function App() {
   }
 
   if (phase === "splash") return <SplashScreen onDone={afterSplash} />;
-  if (phase === "auth") return <AuthScreen onSuccess={(u) => { setUser(u); setPhase(u.storage_paid ? "app" : "paywall"); }} />;
-  if (phase === "paywall" && user) return <PaywallScreen user={user} onActivated={(u) => { setUser(u); setPhase("app"); }} />;
-  if (phase === "app" && user) return <MainShell user={user} section={section} onSection={setSection} onLogout={logout} />;
+  if (phase === "auth")
+    return (
+      <AuthScreen
+        onSuccess={(u) => {
+          setUser(u);
+          setPhase(u.storage_paid ? "app" : "paywall");
+        }}
+      />
+    );
+  if (phase === "paywall" && user)
+    return (
+      <PaywallScreen
+        user={user}
+        onActivated={(u) => {
+          setUser(u);
+          setPhase("app");
+        }}
+      />
+    );
+  if (phase === "app" && user)
+    return <MainShell user={user} section={section} onSection={setSection} onLogout={logout} />;
   return null;
 }

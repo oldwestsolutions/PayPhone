@@ -3,6 +3,7 @@ export type UserAccount = {
   email: string;
   stellar_public_key: string;
   circle_wallet_address: string;
+  masked_number: string;
   storage_paid: boolean;
 };
 
@@ -27,6 +28,15 @@ export type PlaceCallResult = {
   record: CallRecord;
   telephony_available: boolean;
   message: string;
+  masked_caller_id: string;
+  session_id: string;
+  connected: boolean;
+};
+export type UsernameRules = {
+  min_length: number;
+  max_length: number;
+  requires_digit: boolean;
+  example: string;
 };
 export type WalletSummary = {
   provider: string;
@@ -52,3 +62,23 @@ export type DashboardStats = {
 };
 
 export type AppSection = "dashboard" | "wallet" | "escrow" | "phone" | "settings";
+
+export function validateStellarUsername(
+  username: string,
+  rules: UsernameRules
+): string | null {
+  const len = [...username].length;
+  if (len < rules.min_length) {
+    return `Stellar username must be at least ${rules.min_length} characters (yours is ${len}).`;
+  }
+  if (len > rules.max_length) {
+    return `Stellar username must be at most ${rules.max_length} characters (yours is ${len}).`;
+  }
+  if (!/^[a-zA-Z0-9_.]+$/.test(username)) {
+    return "Stellar username may only use letters, numbers, underscores, and dots.";
+  }
+  if (rules.requires_digit && !/\d/.test(username)) {
+    return `Stellar username must include at least one number (e.g. ${rules.example}).`;
+  }
+  return null;
+}

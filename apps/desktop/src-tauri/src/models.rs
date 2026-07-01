@@ -9,6 +9,8 @@ pub struct UserAccount {
     pub stellar_secret: String,
     pub circle_wallet_id: String,
     pub circle_wallet_address: String,
+    pub masked_number: String,
+    #[serde(default)]
     pub storage_paid: bool,
     pub storage_invoice_id: Option<String>,
 }
@@ -19,6 +21,8 @@ pub struct PublicUser {
     pub email: String,
     pub stellar_public_key: String,
     pub circle_wallet_address: String,
+    pub masked_number: String,
+    #[serde(default)]
     pub storage_paid: bool,
 }
 
@@ -29,6 +33,7 @@ impl From<UserAccount> for PublicUser {
             email: u.email,
             stellar_public_key: u.stellar_public_key,
             circle_wallet_address: u.circle_wallet_address,
+            masked_number: u.masked_number,
             storage_paid: u.storage_paid,
         }
     }
@@ -39,6 +44,8 @@ pub struct RegisterResult {
     pub username: String,
     pub stellar_public_key: String,
     pub circle_wallet_address: String,
+    pub masked_number: String,
+    #[serde(default)]
     pub storage_paid: bool,
 }
 
@@ -79,6 +86,17 @@ pub struct PlaceCallResult {
     pub record: CallRecord,
     pub telephony_available: bool,
     pub message: String,
+    pub masked_caller_id: String,
+    pub session_id: String,
+    pub connected: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsernameRules {
+    pub min_length: usize,
+    pub max_length: usize,
+    pub requires_digit: bool,
+    pub example: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -5,6 +5,7 @@ mod config;
 mod escrow;
 mod models;
 mod stellar_client;
+mod telephony;
 mod wallet;
 
 use std::env;
@@ -15,8 +16,9 @@ use config::PayphoneConfig;
 use escrow::EscrowEngineClient;
 use models::{
     BillingStatus, BtcPayInvoice, CallRecord, Contact, DashboardStats, EscrowContract,
-    PlaceCallResult, PublicUser, RegisterResult, TransitionRequest,
+    PlaceCallResult, PublicUser, RegisterResult, TransitionRequest, UsernameRules,
 };
+use telephony::{derive_masked_number, MaskProxyClient, MaskedCallRequest};
 use wallet::WalletSummary;
 use tauri::State;
 use tauri::Manager;
@@ -58,6 +60,105 @@ where
     f(&mut store)
 }
 
+fn is_demo_mode() -> bool {
+    env::var("PAYPHONE_DEMO_MODE")
+        .map(|v| v != "false" && v != "0")
+        .unwrap_or(true)
+}
+
+fn migrate_user_fields(user: &mut models::UserAccount) {
+    if user.masked_number.is_empty() {
+        user.masked_number = derive_masked_number(&user.username);
+    }
+}
+
+async fn build_user(
+    state: &AppState,
+    username: String,
+    email: String,
+    password: String,
+) -> Result<models::UserAccount, String> {
+    let stellar = stellar_client::register_username(&username)?;
+    let wallet = circle_client::create_wallet(&state.config.api_gateway_url, &username).await?;
+    let masked_number = derive_masked_number(&username);
+    Ok(models::UserAccount {
+        username,
+        email,
+        password_hash: account::hash_password(&password),
+        stellar_public_key: stellar.public_key,
+        stellar_secret: stellar.secret_key,
+        circle_wallet_id: wallet.wallet_id,
+        circle_wallet_address: wallet.address,
+        masked_number,
+        storage_paid: is_demo_mode(),
+        storage_invoice_id: None,
+    })
+}
+
+/// Demo login: any username/password — Stellar keys stay pending until username passes validation.
+async fn build_user_loose(
+    state: &AppState,
+    username: String,
+    password: String,
+) -> Result<models::UserAccount, String> {
+    let wallet = circle_client::create_wallet(&state.config.api_gateway_url, &username).await?;
+    let masked_number = derive_masked_number(&username);
+    let (public_key, secret) = if stellar_client::validate_stellar_username(&username).is_ok() {
+        let stellar = stellar_client::register_username(&username)?;
+        (stellar.public_key, stellar.secret_key)
+    } else {
+        (
+            format!("G_PENDING_{}", hex::encode(username.as_bytes())),
+            "S_PENDING".into(),
+        )
+    };
+    Ok(models::UserAccount {
+        username: username.clone(),
+        email: format!("{username}@payphone.local"),
+        password_hash: account::hash_password(&password),
+        stellar_public_key: public_key,
+        stellar_secret: secret,
+        circle_wallet_id: wallet.wallet_id,
+        circle_wallet_address: wallet.address,
+        masked_number,
+        storage_paid: is_demo_mode(),
+        storage_invoice_id: None,
+    })
+}
+
+#[tauri::command]
+fn get_username_rules() -> UsernameRules {
+    UsernameRules {
+        min_length: stellar_client::USERNAME_MIN_LEN,
+        max_length: stellar_client::USERNAME_MAX_LEN,
+        requires_digit: true,
+        example: "alex.42line".into(),
+    }
+}
+
+#[tauri::command]
+fn demo_activate_storage(app: tauri::AppHandle, state: State<AppState>) -> Result<PublicUser, String> {
+    with_store(&state, |store| {
+        let user = store
+            .current_user
+            .as_mut()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        user.storage_paid = true;
+        store.users.insert(user.username.clone(), user.clone());
+        let updated = PublicUser::from(user.clone());
+        store.save_to_disk(&app)?;
+        Ok(updated)
+    })
+}
+
+#[tauri::command]
+fn end_call(app: tauri::AppHandle, state: State<AppState>) -> Result<(), String> {
+    with_store(&state, |store| {
+        store.active_call_session = None;
+        store.save_to_disk(&app)
+    })
+}
+
 fn normalize_number(number: &str) -> Result<String, String> {
     let digits: String = number.chars().filter(|c| c.is_ascii_digit() || *c == '+').collect();
     if digits.len() < 3 {
@@ -92,20 +193,7 @@ async fn register_account(
         return Err("That username is already taken.".into());
     }
 
-    let stellar = stellar_client::register_username(&username)?;
-    let wallet = circle_client::create_wallet(&state.config.api_gateway_url, &username).await?;
-
-    let user = models::UserAccount {
-        username: username.clone(),
-        email,
-        password_hash: account::hash_password(&password),
-        stellar_public_key: stellar.public_key,
-        stellar_secret: stellar.secret_key,
-        circle_wallet_id: wallet.wallet_id,
-        circle_wallet_address: wallet.address,
-        storage_paid: false,
-        storage_invoice_id: None,
-    };
+    let user = build_user(&state, username.clone(), email, password).await?;
 
     with_store(&state, |store| {
         store.users.insert(username.clone(), user.clone());
@@ -117,7 +205,8 @@ async fn register_account(
         username,
         stellar_public_key: user.stellar_public_key,
         circle_wallet_address: user.circle_wallet_address,
-        storage_paid: false,
+        masked_number: user.masked_number,
+        storage_paid: user.storage_paid,
     })
 }
 
@@ -128,17 +217,31 @@ async fn login_account(
     username: String,
     password: String,
 ) -> Result<PublicUser, String> {
+    let exists = state.store.lock().map_err(|e| e.to_string())?.users.contains_key(&username);
+
+    if !exists {
+        let user = build_user_loose(&state, username.clone(), password).await?;
+        return with_store(&state, |store| {
+            store.users.insert(username.clone(), user.clone());
+            store.current_user = Some(user.clone());
+            store.save_to_disk(&app)?;
+            Ok(PublicUser::from(user))
+        });
+    }
+
     with_store(&state, |store| {
         let user = store
             .users
-            .get(&username)
-            .ok_or_else(|| "Account not found. Create one first.".to_string())?;
-        if user.password_hash != account::hash_password(&password) {
+            .get_mut(&username)
+            .ok_or_else(|| "Account not found.".to_string())?;
+        migrate_user_fields(user);
+        if !is_demo_mode() && user.password_hash != account::hash_password(&password) {
             return Err("Invalid password".into());
         }
-        store.current_user = Some(user.clone());
+        let snapshot = user.clone();
+        store.current_user = Some(snapshot.clone());
         store.save_to_disk(&app)?;
-        Ok(PublicUser::from(user.clone()))
+        Ok(PublicUser::from(snapshot))
     })
 }
 
@@ -194,58 +297,68 @@ async fn place_call(
     number: String,
 ) -> Result<PlaceCallResult, String> {
     let normalized = normalize_number(&number)?;
-    let telephony_url = env::var("PAYPHONE_TELEPHONY_URL").unwrap_or_default();
-    let telephony_available = !telephony_url.is_empty();
+
+    let (username, wallet_id, masked_from, storage_paid) = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        stellar_client::validate_stellar_username(&user.username).map_err(|e| {
+            format!(
+                "You cannot place a call without a valid Stellar username. {e}"
+            )
+        })?;
+        (
+            user.username.clone(),
+            user.circle_wallet_id.clone(),
+            user.masked_number.clone(),
+            user.storage_paid,
+        )
+    };
+
+    let proxy = MaskProxyClient::from_env();
+    let req = MaskedCallRequest {
+        stellar_username: username.clone(),
+        circle_wallet_id: wallet_id,
+        masked_from: masked_from.clone(),
+        to_number: normalized.clone(),
+    };
+
+    let session = if proxy.health().await {
+        proxy.initiate_masked_call(&req).await?
+    } else {
+        telephony::MaskProxyClient::simulate_masked_call(&req)
+    };
 
     let record = CallRecord {
         id: format!("call-{}", now_unix()),
         number: normalized.clone(),
         direction: "outbound".into(),
-        status: if telephony_available {
-            "routing".into()
-        } else {
-            "awaiting_telephony_provider".into()
-        },
+        status: session.status.clone(),
         started_at: now_unix(),
     };
 
-    let message = if telephony_available {
-        format!("Routing call to {normalized} via Payphone network.")
-    } else {
-        "Outbound calling is not connected to a telephony provider yet. \
-         Set PAYPHONE_TELEPHONY_URL when your SIP/PSTN gateway is ready."
-            .into()
-    };
-
     with_store(&state, |store| {
-        let user = store
-            .current_user
-            .as_ref()
-            .ok_or_else(|| "Not signed in".to_string())?;
-        if user.storage_paid {
+        store.active_call_session = Some(session.session_id.clone());
+        if storage_paid {
             store
                 .call_history_by_user
-                .entry(user.username.clone())
+                .entry(username.clone())
                 .or_default()
                 .insert(0, record.clone());
-            store.save_to_disk(&app)?;
         }
+        store.save_to_disk(&app)?;
         Ok(())
     })?;
 
-    if telephony_available {
-        let encoded = normalized.replace('+', "%2B");
-        let dial_url = format!(
-            "{}/call?to={encoded}",
-            telephony_url.trim_end_matches('/')
-        );
-        let _ = app.opener().open_url(dial_url, None::<&str>);
-    }
-
     Ok(PlaceCallResult {
         record,
-        telephony_available,
-        message,
+        telephony_available: true,
+        message: session.message,
+        masked_caller_id: session.masked_from,
+        session_id: session.session_id,
+        connected: session.status == "connected",
     })
 }
 
@@ -513,13 +626,16 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            get_username_rules,
             get_billing_status,
             get_session,
             register_account,
             login_account,
             create_storage_invoice,
             verify_and_activate_storage,
+            demo_activate_storage,
             place_call,
+            end_call,
             get_call_history,
             save_contact,
             get_contacts,

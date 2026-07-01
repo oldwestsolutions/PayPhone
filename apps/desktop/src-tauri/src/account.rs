@@ -16,6 +16,8 @@ pub struct AccountStore {
     pub call_history_by_user: HashMap<String, Vec<CallRecord>>,
     #[serde(default)]
     pub escrows_by_user: HashMap<String, Vec<EscrowContract>>,
+    #[serde(default)]
+    pub active_call_session: Option<String>,
     /// Legacy field — migrated into contacts_by_user on load.
     #[serde(default)]
     pub contacts: Vec<Contact>,
