@@ -1,6 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { CallRecord, Contact, DashboardStats, PlaceCallResult, UserAccount, UsernameRules } from "../types";
+import type {
+  CallRecord,
+  CallRecording,
+  Contact,
+  DashboardStats,
+  PlaceCallResult,
+  StellarProfile,
+  UserAccount,
+  UsernameRules,
+} from "../types";
 import { validateStellarUsername } from "../types";
 
 const DIAL_KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
@@ -15,14 +24,18 @@ function formatCallTime(ts: number): string {
 }
 
 export function CommunicationsPanel({ user }: { user: UserAccount }) {
-  const [tab, setTab] = useState<"overview" | "dialer" | "history" | "contacts">("overview");
+  const [tab, setTab] = useState<"overview" | "dialer" | "history" | "contacts" | "recordings">("overview");
   const [dial, setDial] = useState("");
+  const [resolved, setResolved] = useState<StellarProfile | null>(null);
+  const [myDialAddress, setMyDialAddress] = useState("");
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [calls, setCalls] = useState<CallRecord[]>([]);
+  const [recordings, setRecordings] = useState<CallRecording[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [notice, setNotice] = useState("");
   const [calling, setCalling] = useState(false);
   const [activeSession, setActiveSession] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
   const [rules, setRules] = useState<UsernameRules | null>(null);
   const [newName, setNewName] = useState("");
   const [newNumber, setNewNumber] = useState("");
@@ -34,20 +47,38 @@ export function CommunicationsPanel({ user }: { user: UserAccount }) {
   const canCall = !usernameError && user.storage_paid && !!user.personal_phone;
 
   const refresh = useCallback(async () => {
-    const [c, h, s] = await Promise.all([
+    const [c, h, s, recs, dialAddr] = await Promise.all([
       invoke<Contact[]>("get_contacts").catch(() => []),
       invoke<CallRecord[]>("get_call_history").catch(() => []),
       invoke<DashboardStats>("get_dashboard_stats").catch(() => null),
+      invoke<CallRecording[]>("list_call_recordings").catch(() => []),
+      invoke<string>("get_stellar_dial_address").catch(() => ""),
     ]);
     setContacts(c);
     setCalls(h);
     setStats(s);
+    setRecordings(recs);
+    setMyDialAddress(dialAddr);
   }, []);
 
   useEffect(() => {
     refresh();
     invoke<UsernameRules>("get_username_rules").then(setRules).catch(() => {});
   }, [refresh]);
+
+  useEffect(() => {
+    const name = dial.trim().replace(/^@/, "");
+    if (!name || name.match(/^\d/)) {
+      setResolved(null);
+      return;
+    }
+    const t = setTimeout(() => {
+      invoke<StellarProfile>("resolve_stellar_name", { name })
+        .then(setResolved)
+        .catch(() => setResolved(null));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [dial]);
 
   async function startCall(target?: string) {
     const n = target || dial;
@@ -63,7 +94,7 @@ export function CommunicationsPanel({ user }: { user: UserAccount }) {
     setCalling(true);
     try {
       const result = await invoke<PlaceCallResult>("place_call", { number: n });
-      setNotice(result.message);
+      setNotice(result.message + (result.to_dial_address ? ` · ${result.to_dial_address}` : ""));
       setActiveSession(result.connected ? result.session_id : null);
       setCalls((p) => [result.record, ...p]);
       if (!target) setDial("");
@@ -77,8 +108,27 @@ export function CommunicationsPanel({ user }: { user: UserAccount }) {
 
   async function hangUp() {
     await invoke("end_call");
+    if (recording && activeSession) {
+      await invoke("stop_call_recording", { sessionId: activeSession }).catch(() => {});
+      setRecording(false);
+      refresh();
+    }
     setActiveSession(null);
     setNotice("Call ended. Outbound ID shown as RESTRICTED.");
+  }
+
+  async function toggleRecording() {
+    if (!activeSession) return;
+    if (recording) {
+      await invoke("stop_call_recording", { sessionId: activeSession });
+      setRecording(false);
+      setNotice("Recording saved locally and registered for platform sharing.");
+      refresh();
+    } else {
+      await invoke("start_call_recording", { sessionId: activeSession });
+      setRecording(true);
+      setNotice("Recording on this device (valid as shared file via platform token).");
+    }
   }
 
   return (
@@ -86,7 +136,9 @@ export function CommunicationsPanel({ user }: { user: UserAccount }) {
       <header className="comm-header">
         <div>
           <h1>Communications</h1>
-          <p className="panel-sub">@{user.username} · name-to-name · caller ID RESTRICTED</p>
+          <p className="panel-sub">
+            Your Stellar number: <strong>{myDialAddress || `@${user.username}`}</strong> · callee sees RESTRICTED
+          </p>
         </div>
         <div className="comm-status-row">
           <span className={stats?.telephony_engine_online ? "pill online" : "pill"}>Telephony</span>
@@ -96,7 +148,7 @@ export function CommunicationsPanel({ user }: { user: UserAccount }) {
       </header>
 
       <div className="phone-tabs">
-        {(["overview", "dialer", "history", "contacts"] as const).map((t) => (
+        {(["overview", "dialer", "history", "contacts", "recordings"] as const).map((t) => (
           <button key={t} type="button" className={tab === t ? "active" : ""} onClick={() => setTab(t)}>
             {t}
           </button>
@@ -119,7 +171,10 @@ export function CommunicationsPanel({ user }: { user: UserAccount }) {
 
       {activeSession && (
         <div className="call-active-banner">
-          <span>On call · callee sees RESTRICTED</span>
+          <span>On call · callee sees RESTRICTED {recording ? "· REC" : ""}</span>
+          <button type="button" className="btn-ghost" onClick={toggleRecording}>
+            {recording ? "Stop recording" : "Record locally"}
+          </button>
           <button type="button" className="btn-secondary" onClick={hangUp}>End call</button>
         </div>
       )}
@@ -141,22 +196,27 @@ export function CommunicationsPanel({ user }: { user: UserAccount }) {
             <span className="stat-value">{stats.escrows_active}</span>
           </div>
           <div className="stat-card glass">
-            <span className="stat-label">Your masked line</span>
-            <span className="stat-value small">{user.masked_number || "—"}</span>
+            <span className="stat-label">Stellar dial address</span>
+            <span className="stat-value small">{myDialAddress || user.stellar_public_key}</span>
           </div>
         </div>
       )}
 
       {tab === "dialer" && (
         <div className="dialer">
-          <p className="hint">Dial a Stellar name (e.g. alex.42line) or number. Calls bridge via Haskell middleware.</p>
+          <p className="hint">Dial a readable Stellar lumens address (@name · Gxxx…) or type a name. Haskell middleware masks your line.</p>
           <input
             className="dial-display"
             value={dial}
             onChange={(e) => setDial(e.target.value)}
             placeholder="@stellar.name"
-            aria-label="Stellar name or number"
+            aria-label="Stellar dial address"
           />
+          {resolved && (
+            <p className="hint resolved-dial">
+              → {resolved.dialAddress} {resolved.reachable ? "(reachable)" : "(not on network yet)"}
+            </p>
+          )}
           <div className="dial-grid">
             {DIAL_KEYS.map((k) => (
               <button key={k} type="button" className="dial-key" onClick={() => setDial((d) => d + k)}>{k}</button>
@@ -180,6 +240,19 @@ export function CommunicationsPanel({ user }: { user: UserAccount }) {
                 <span className="restricted-badge">RESTRICTED</span> ↗ {c.peer_name || c.number}
                 <span>{formatCallTime(c.started_at)}</span>
               </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {tab === "recordings" && (
+        <ul className="list-plain">
+          {recordings.length === 0 && <li className="empty">No shared recordings yet. Record during an active call.</li>}
+          {recordings.map((r) => (
+            <li key={r.recordingId} className="glass sms-item">
+              <strong>{r.sessionId}</strong>
+              <span className="hint">Local: {r.localPath}</span>
+              <span className="gift-badge">Share: {r.sharedToken}</span>
             </li>
           ))}
         </ul>

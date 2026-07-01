@@ -7,6 +7,8 @@ export type UserAccount = {
   personal_phone: string;
   account_type: string;
   storage_paid: boolean;
+  storage_credits_gib: number;
+  comms_credits: number;
 };
 
 export type Contact = { name: string; number: string; company?: string };
@@ -36,6 +38,7 @@ export type PlaceCallResult = {
   caller_id_shown: string;
   session_id: string;
   connected: boolean;
+  to_dial_address: string;
 };
 export type UsernameRules = {
   min_length: number;
@@ -67,6 +70,25 @@ export type EscrowContract = {
   minBillableSeconds?: number;
   ratePerSecond?: number;
 };
+export type MarketingEscrow = {
+  marketingId: string;
+  brandId: string;
+  creatorId: string;
+  campaignName: string;
+  amount: number;
+  status: string;
+  buyerBalance: number;
+};
+export type SupplyChainEscrow = {
+  supplyId: string;
+  buyerId: string;
+  supplierId: string;
+  sku: string;
+  quantity: number;
+  amount: number;
+  status: string;
+  buyerBalance: number;
+};
 export type DashboardStats = {
   calls_count: number;
   contacts_count: number;
@@ -77,11 +99,13 @@ export type DashboardStats = {
 };
 export type SmsMessage = {
   id: string;
-  from_name: string;
-  to_name: string;
+  fromName: string;
+  toName: string;
   body: string;
-  sent_at: number;
-  gift_usdc?: number;
+  sentAt: number;
+  giftUsdc?: number;
+  stellarPublicKey?: string;
+  digitalSignature?: string;
 };
 export type CalendarEvent = {
   id: string;
@@ -91,8 +115,37 @@ export type CalendarEvent = {
   ends_at: number;
   with_name?: string;
 };
+export type StellarProfile = {
+  stellarName: string;
+  publicKey: string;
+  dialAddress: string;
+  reachable: boolean;
+};
+export type PayQuote = {
+  storageGibMonths: number;
+  transferMib: number;
+  totalUsdc: number;
+  filecoinRate: number;
+  transferRate: number;
+  reason: string;
+};
+export type CreditPurchaseResult = {
+  usdc_paid: number;
+  storage_gib_months: number;
+  comms_units: number;
+  tx_ref: string;
+  solidity_contract: string;
+};
+export type CallRecording = {
+  recordingId: string;
+  sessionId: string;
+  ownerName: string;
+  localPath: string;
+  sharedToken: string;
+  createdAt: number;
+};
 
-export type AppSection = "communications" | "messages" | "calendar" | "wallet" | "escrow" | "settings";
+export type AppSection = "communications" | "messages" | "calendar" | "wallet" | "pay" | "escrow" | "settings";
 
 export function validateStellarUsername(
   username: string,

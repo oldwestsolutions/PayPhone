@@ -7,7 +7,7 @@ license: MIT
 executable escrow-engine
   main-is: Main.hs
   hs-source-dirs: .
-  other-modules: Escrow.Types, Escrow.Transition, Escrow.Billing
+  other-modules: Escrow.Types, Escrow.Transition, Escrow.Billing, Escrow.Marketing, Escrow.SupplyChain
   build-depends:
     base,
     aeson,

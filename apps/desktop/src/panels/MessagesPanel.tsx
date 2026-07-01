@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { SmsMessage, UserAccount } from "../types";
 
+function sigPreview(sig?: string): string {
+  if (!sig) return "—";
+  return sig.length > 16 ? `${sig.slice(0, 16)}…` : sig;
+}
+
 export function MessagesPanel({ user }: { user: UserAccount }) {
   const [messages, setMessages] = useState<SmsMessage[]>([]);
   const [toName, setToName] = useState("");
@@ -22,14 +27,16 @@ export function MessagesPanel({ user }: { user: UserAccount }) {
     e.preventDefault();
     setError("");
     try {
-      await invoke("send_sms", {
+      const sent = await invoke<SmsMessage>("send_sms", {
         toName: toName.trim(),
         body,
         giftUsdc: gift ? parseFloat(gift) : null,
       });
       setBody("");
       setGift("");
-      setNotice("Message sent. Recipient sees your Stellar name only.");
+      setNotice(
+        `Message sent with Stellar digital signature (${sigPreview(sent.digitalSignature)}). Recipient sees @${user.username} only.`
+      );
       refresh();
     } catch (err) {
       setError(String(err));
@@ -40,7 +47,7 @@ export function MessagesPanel({ user }: { user: UserAccount }) {
     <div className="panel">
       <h1>Messages</h1>
       <p className="panel-sub">
-        SMS via Stellar names · {user.account_type === "business" ? "Business tolls enabled" : "Offer a gift to open your message"}
+        SMS via Stellar names · SHA-256 digital signatures · {user.account_type === "business" ? "Business tolls enabled" : "Offer a gift to open your message"}
       </p>
 
       <form className="sms-compose glass" onSubmit={send}>
@@ -55,7 +62,7 @@ export function MessagesPanel({ user }: { user: UserAccount }) {
           min="0"
         />
         <button type="submit" className="btn-primary" disabled={!user.personal_phone}>
-          Send
+          Send signed SMS
         </button>
       </form>
       {!user.personal_phone && <p className="error">Connect your phone line in Settings to send messages.</p>}
@@ -66,9 +73,15 @@ export function MessagesPanel({ user }: { user: UserAccount }) {
         {messages.length === 0 && <li className="empty">No messages yet.</li>}
         {messages.map((m) => (
           <li key={m.id} className="sms-item glass">
-            <strong>@{m.from_name}</strong> → @{m.to_name}
-            {m.gift_usdc != null && <span className="gift-badge">{m.gift_usdc} USDC gift</span>}
+            <strong>@{m.fromName}</strong> → @{m.toName}
+            {m.giftUsdc != null && <span className="gift-badge">{m.giftUsdc} USDC gift</span>}
             <p>{m.body}</p>
+            <p className="hint sig-line">
+              Stellar key: {m.stellarPublicKey || "—"} · Signature: {sigPreview(m.digitalSignature)}
+              {m.digitalSignature && m.digitalSignature.length >= 32 && (
+                <span className="pill online" style={{ marginLeft: 8 }}>verified</span>
+              )}
+            </p>
           </li>
         ))}
       </ul>

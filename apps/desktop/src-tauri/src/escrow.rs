@@ -1,4 +1,4 @@
-use crate::models::{EscrowContract, TransitionRequest, TransitionResponse};
+use crate::models::{EscrowContract, MarketingEscrow, SupplyChainEscrow, TransitionRequest, TransitionResponse};
 use serde::Deserialize;
 
 pub struct EscrowEngineClient {
@@ -105,5 +105,83 @@ impl EscrowEngineClient {
             (s, t) => return Err(format!("Invalid transition '{t}' from {s}")),
         }
         Ok(c)
+    }
+
+    pub async fn create_marketing(&self, escrow: &MarketingEscrow) -> Result<MarketingEscrow, String> {
+        let url = format!("{}/marketing", self.base_url.trim_end_matches('/'));
+        let body = serde_json::json!({
+            "marketingId": escrow.marketing_id,
+            "brandId": escrow.brand_id,
+            "creatorId": escrow.creator_id,
+            "campaignName": escrow.campaign_name,
+            "amount": escrow.amount,
+            "buyerBalance": escrow.buyer_balance,
+        });
+        self.post_json(&url, body).await
+    }
+
+    pub async fn transition_marketing(
+        &self,
+        marketing_id: &str,
+        request: &TransitionRequest,
+    ) -> Result<MarketingEscrow, String> {
+        let url = format!(
+            "{}/marketing/{}/transition",
+            self.base_url.trim_end_matches('/'),
+            marketing_id
+        );
+        self.post_json(&url, serde_json::to_value(request).map_err(|e| e.to_string())?).await
+    }
+
+    pub async fn create_supply(&self, escrow: &SupplyChainEscrow) -> Result<SupplyChainEscrow, String> {
+        let url = format!("{}/supply-chain", self.base_url.trim_end_matches('/'));
+        let body = serde_json::json!({
+            "supplyId": escrow.supply_id,
+            "buyerId": escrow.buyer_id,
+            "supplierId": escrow.supplier_id,
+            "sku": escrow.sku,
+            "quantity": escrow.quantity,
+            "amount": escrow.amount,
+            "buyerBalance": escrow.buyer_balance,
+        });
+        self.post_json(&url, body).await
+    }
+
+    pub async fn transition_supply(
+        &self,
+        supply_id: &str,
+        request: &TransitionRequest,
+    ) -> Result<SupplyChainEscrow, String> {
+        let url = format!(
+            "{}/supply-chain/{}/transition",
+            self.base_url.trim_end_matches('/'),
+            supply_id
+        );
+        self.post_json(&url, serde_json::to_value(request).map_err(|e| e.to_string())?).await
+    }
+
+    async fn post_json<T: for<'de> Deserialize<'de>>(
+        &self,
+        url: &str,
+        body: serde_json::Value,
+    ) -> Result<T, String> {
+        let resp = self
+            .client
+            .post(url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| format!("Escrow engine unreachable: {e}"))?;
+        if !resp.status().is_success() {
+            let text = resp.text().await.unwrap_or_default();
+            return Err(if text.is_empty() {
+                "Escrow request failed".into()
+            } else {
+                text
+            });
+        }
+        resp.json::<T>()
+            .await
+            .map_err(|e| format!("Invalid escrow response: {e}"))
     }
 }

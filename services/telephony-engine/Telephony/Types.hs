@@ -70,6 +70,68 @@ instance FromJSON EndCallPayload where
   parseJSON = genericParseJSON jsonOpts
 
 -- | Outbound caller ID is always RESTRICTED — real numbers never cross the wire.
+data StellarProfile = StellarProfile
+  { stellarName :: !String
+  , publicKey :: !String
+  , dialAddress :: !String
+  , reachable :: !Bool
+  } deriving (Eq, Show, Generic)
+
+instance ToJSON StellarProfile where
+  toJSON = genericToJSON jsonOpts
+instance FromJSON StellarProfile where
+  parseJSON = genericParseJSON jsonOpts
+
+data PayQuote = PayQuote
+  { storageGibMonths :: !Double
+  , transferMib :: !Double
+  , totalUsdc :: !Double
+  , filecoinRate :: !Double
+  , transferRate :: !Double
+  , reason :: !String
+  } deriving (Eq, Show, Generic)
+
+instance ToJSON PayQuote where
+  toJSON = genericToJSON jsonOpts
+instance FromJSON PayQuote where
+  parseJSON = genericParseJSON jsonOpts
+
+data PayQuoteRequest = PayQuoteRequest
+  { storageGibMonths :: !Double
+  , transferMib :: !Double
+  , reason :: !String
+  } deriving (Eq, Show, Generic)
+
+instance ToJSON PayQuoteRequest where
+  toJSON = genericToJSON jsonOpts
+instance FromJSON PayQuoteRequest where
+  parseJSON = genericParseJSON jsonOpts
+
+data CallRecording = CallRecording
+  { recordingId :: !String
+  , sessionId :: !String
+  , ownerName :: !String
+  , localPath :: !String
+  , sharedToken :: !String
+  , createdAt :: !Integer
+  } deriving (Eq, Show, Generic)
+
+instance ToJSON CallRecording where
+  toJSON = genericToJSON jsonOpts
+instance FromJSON CallRecording where
+  parseJSON = genericParseJSON jsonOpts
+
+data RegisterRecordingPayload = RegisterRecordingPayload
+  { sessionId :: !String
+  , ownerName :: !String
+  , localPath :: !String
+  } deriving (Eq, Show, Generic)
+
+instance ToJSON RegisterRecordingPayload where
+  toJSON = genericToJSON jsonOpts
+instance FromJSON RegisterRecordingPayload where
+  parseJSON = genericParseJSON jsonOpts
+
 data CallSession = CallSession
   { sessionId :: !String
   , fromName :: !String
@@ -80,6 +142,7 @@ data CallSession = CallSession
   , bridgeTo :: !String
   , minBillableSeconds :: !Int
   , message :: !String
+  , toDialAddress :: !String
   } deriving (Eq, Show, Generic)
 
 instance ToJSON CallSession where
@@ -94,6 +157,8 @@ data SmsMessage = SmsMessage
   , body :: !String
   , sentAt :: !Integer
   , giftUsdc :: !(Maybe Double)
+  , stellarPublicKey :: !String
+  , digitalSignature :: !String
   } deriving (Eq, Show, Generic)
 
 instance ToJSON SmsMessage where
@@ -106,6 +171,8 @@ data SendSmsPayload = SendSmsPayload
   , toName :: !String
   , body :: !String
   , giftUsdc :: !(Maybe Double)
+  , stellarPublicKey :: !String
+  , digitalSignature :: !String
   } deriving (Eq, Show, Generic)
 
 instance ToJSON SendSmsPayload where

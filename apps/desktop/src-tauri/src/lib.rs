@@ -8,19 +8,20 @@ mod stellar_client;
 mod telephony;
 mod wallet;
 
-use std::env;
 use std::sync::Mutex;
 use account::{load_store, now_unix, AccountStore};
 use btcpay::BtcPayClient;
 use config::PayphoneConfig;
 use escrow::EscrowEngineClient;
 use models::{
-    BillingStatus, BtcPayInvoice, CallRecord, Contact, DashboardStats, EscrowContract,
-    PlaceCallResult, PublicUser, RegisterResult, TransitionRequest, UsernameRules,
+    BillingStatus, BtcPayInvoice, CallRecord, Contact, CreditPurchaseResult, DashboardStats,
+    EscrowContract, MarketingEscrow, PlaceCallResult, PublicUser, RegisterResult,
+    SupplyChainEscrow, TransitionRequest, UsernameRules,
 };
+use stellar_client::{format_dial_address, sign_sms_payload};
 use telephony::{
-    derive_masked_number, CalendarEvent, NameCallRequest, PhoneLineConfig, SendSmsRequest,
-    TelephonyEngineClient,
+    derive_masked_number, CalendarEvent, CallRecording, NameCallRequest, PayQuote, PhoneLineConfig,
+    SendSmsRequest, StellarProfile, TelephonyEngineClient,
 };
 use wallet::WalletSummary;
 use tauri::State;
@@ -64,9 +65,7 @@ where
 }
 
 fn is_demo_mode() -> bool {
-    env::var("PAYPHONE_DEMO_MODE")
-        .map(|v| v != "false" && v != "0")
-        .unwrap_or(true)
+    circle_client::demo_mode()
 }
 
 fn migrate_user_fields(user: &mut models::UserAccount) {
@@ -100,6 +99,8 @@ async fn build_user(
         message_gift_usdc: None,
         storage_paid: is_demo_mode(),
         storage_invoice_id: None,
+        storage_credits_gib: if is_demo_mode() { 1.0 } else { 0.0 },
+        comms_credits: if is_demo_mode() { 1000.0 } else { 0.0 },
     })
 }
 
@@ -136,6 +137,8 @@ async fn build_user_loose(
         message_gift_usdc: None,
         storage_paid: is_demo_mode(),
         storage_invoice_id: None,
+        storage_credits_gib: if is_demo_mode() { 1.0 } else { 0.0 },
+        comms_credits: if is_demo_mode() { 1000.0 } else { 0.0 },
     })
 }
 
@@ -157,6 +160,8 @@ fn demo_activate_storage(app: tauri::AppHandle, state: State<AppState>) -> Resul
             .as_mut()
             .ok_or_else(|| "Not signed in".to_string())?;
         user.storage_paid = true;
+        user.storage_credits_gib = user.storage_credits_gib.max(1.0);
+        user.comms_credits = user.comms_credits.max(1000.0);
         store.users.insert(user.username.clone(), user.clone());
         let updated = PublicUser::from(user.clone());
         store.save_to_disk(&app)?;
@@ -306,6 +311,8 @@ async fn verify_and_activate_storage(
             .ok_or_else(|| "Not signed in".to_string())?;
         user.storage_paid = true;
         user.storage_invoice_id = Some(invoice_id);
+        user.storage_credits_gib = user.storage_credits_gib.max(1.0);
+        user.comms_credits = user.comms_credits.max(1000.0);
         store.users.insert(user.username.clone(), user.clone());
         let updated = PublicUser::from(user.clone());
         store.save_to_disk(&app)?;
@@ -383,6 +390,471 @@ async fn place_call_by_name(
         caller_id_shown: session.caller_id_shown,
         session_id: session.session_id,
         connected: session.status == "Connected" || session.status == "connected",
+        to_dial_address: session.to_dial_address,
+    })
+}
+
+#[tauri::command]
+async fn get_stellar_dial_address(state: State<'_, AppState>) -> Result<String, String> {
+    let store = state.store.lock().map_err(|e| e.to_string())?;
+    let user = store
+        .current_user
+        .as_ref()
+        .ok_or_else(|| "Not signed in".to_string())?;
+    Ok(format_dial_address(
+        &user.username,
+        &user.stellar_public_key,
+    ))
+}
+
+#[tauri::command]
+async fn resolve_stellar_name(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<StellarProfile, String> {
+    let target = name.trim().trim_start_matches('@');
+    let engine = TelephonyEngineClient::from_env();
+    if engine.health().await {
+        engine.resolve_stellar(target).await
+    } else {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        let pk = store
+            .users
+            .get(target)
+            .map(|u| u.stellar_public_key.clone())
+            .unwrap_or_default();
+        Ok(StellarProfile {
+            stellar_name: target.to_string(),
+            public_key: pk.clone(),
+            dial_address: format_dial_address(target, &pk),
+            reachable: !pk.is_empty(),
+        })
+    }
+}
+
+#[tauri::command]
+async fn get_pay_quote(
+    storage_gib: f64,
+    transfer_mib: f64,
+    reason: String,
+) -> Result<PayQuote, String> {
+    let engine = TelephonyEngineClient::from_env();
+    if engine.health().await {
+        engine.pay_quote(storage_gib, transfer_mib, &reason).await
+    } else {
+        let storage_cost = storage_gib * 0.50;
+        let transfer_cost = transfer_mib * 0.02;
+        Ok(PayQuote {
+            storage_gib_months: storage_gib,
+            transfer_mib,
+            total_usdc: storage_cost + transfer_cost,
+            filecoin_rate: 0.50,
+            transfer_rate: 0.02,
+            reason,
+        })
+    }
+}
+
+#[tauri::command]
+async fn purchase_credits(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    usdc_amount: f64,
+) -> Result<CreditPurchaseResult, String> {
+    if usdc_amount <= 0.0 {
+        return Err("Amount must be positive".into());
+    }
+    let (wallet_id, username) = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        (user.circle_wallet_id.clone(), user.username.clone())
+    };
+
+    let storage_gib = usdc_amount;
+    let comms_units = usdc_amount * 1000.0;
+    let tx_ref = if is_demo_mode() {
+        format!("demo-credits-{}", now_unix())
+    } else {
+        let url = format!(
+            "{}/api/pay/purchase-credits",
+            state.config.api_gateway_url.trim_end_matches('/')
+        );
+        let resp = reqwest::Client::new()
+            .post(&url)
+            .json(&serde_json::json!({
+                "walletId": wallet_id,
+                "usdcAmount": usdc_amount,
+                "username": username,
+            }))
+            .send()
+            .await
+            .map_err(|e| format!("Gateway unreachable: {e}"))?;
+        let body: serde_json::Value = resp
+            .json()
+            .await
+            .map_err(|e| format!("Invalid gateway response: {e}"))?;
+        if let Some(err) = body.get("error").and_then(|v| v.as_str()) {
+            return Err(err.to_string());
+        }
+        body["data"]["txRef"]
+            .as_str()
+            .unwrap_or("circle-transfer")
+            .to_string()
+    };
+
+    with_store(&state, |store| {
+        let user = store
+            .current_user
+            .as_mut()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        user.storage_credits_gib += storage_gib;
+        user.comms_credits += comms_units;
+        if user.storage_credits_gib >= 1.0 {
+            user.storage_paid = true;
+        }
+        store.users.insert(user.username.clone(), user.clone());
+        store.save_to_disk(&app)?;
+        Ok(CreditPurchaseResult {
+            usdc_paid: usdc_amount,
+            storage_gib_months: storage_gib,
+            comms_units,
+            tx_ref,
+            solidity_contract: "PayPhoneCredits".into(),
+        })
+    })
+}
+
+#[tauri::command]
+async fn start_call_recording(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    session_id: String,
+) -> Result<String, String> {
+    let username = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        store
+            .current_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .ok_or_else(|| "Not signed in".to_string())?
+    };
+    let dir = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("recordings");
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    let path = dir.join(format!("{username}-{session_id}.payrec"));
+    std::fs::write(
+        &path,
+        format!(
+            "Payphone local recording\nuser={username}\nsession={session_id}\nstarted={}\n",
+            now_unix()
+        ),
+    )
+    .map_err(|e| e.to_string())?;
+    with_store(&state, |store| {
+        store.active_recording_path = Some(path.display().to_string());
+        store.save_to_disk(&app)?;
+        Ok(path.display().to_string())
+    })
+}
+
+#[tauri::command]
+async fn stop_call_recording(
+    _app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    session_id: String,
+) -> Result<CallRecording, String> {
+    let (username, local_path) = with_store(&state, |store| {
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        let path = store
+            .active_recording_path
+            .take()
+            .ok_or_else(|| "No active recording".to_string())?;
+        Ok((user.username.clone(), path))
+    })?;
+
+    if let Ok(meta) = std::fs::read_to_string(&local_path) {
+        let _ = std::fs::write(
+            &local_path,
+            format!("{meta}ended={}\n", now_unix()),
+        );
+    }
+
+    let engine = TelephonyEngineClient::from_env();
+    if engine.health().await {
+        engine
+            .register_recording(&session_id, &username, &local_path)
+            .await
+    } else {
+        let sid = session_id.clone();
+        Ok(CallRecording {
+            recording_id: format!("local-rec-{sid}"),
+            session_id,
+            owner_name: username,
+            local_path,
+            shared_token: format!("share-local-{sid}"),
+            created_at: now_unix() as i64,
+        })
+    }
+}
+
+#[tauri::command]
+async fn list_call_recordings(state: State<'_, AppState>) -> Result<Vec<CallRecording>, String> {
+    let username = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        store
+            .current_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .ok_or_else(|| "Not signed in".to_string())?
+    };
+    let engine = TelephonyEngineClient::from_env();
+    if engine.health().await {
+        engine.list_recordings(&username).await
+    } else {
+        Ok(vec![])
+    }
+}
+
+#[tauri::command]
+async fn create_marketing_escrow(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    creator_id: String,
+    campaign_name: String,
+    amount: f64,
+) -> Result<MarketingEscrow, String> {
+    let (brand_id, wallet_id) = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        (user.username.clone(), user.circle_wallet_id.clone())
+    };
+    let (_, usdc_balance) =
+        circle_client::get_wallet_balances(&state.config.api_gateway_url, &wallet_id).await?;
+    let buyer_balance: f64 = usdc_balance.parse().unwrap_or(0.0);
+    if buyer_balance < amount {
+        return Err(format!(
+            "Insufficient wallet balance: {usdc_balance} USDC available, {amount} required."
+        ));
+    }
+    let draft = MarketingEscrow {
+        marketing_id: format!("mkt-{}", now_unix()),
+        brand_id: brand_id.clone(),
+        creator_id,
+        campaign_name,
+        amount,
+        status: "Draft".into(),
+        buyer_balance,
+    };
+    let engine = EscrowEngineClient::new(state.config.escrow_engine_url.clone());
+    let created = if engine.health().await {
+        engine.create_marketing(&draft).await?
+    } else {
+        draft
+    };
+    with_store(&state, |store| {
+        store
+            .marketing_escrows_by_user
+            .entry(brand_id)
+            .or_default()
+            .push(created.clone());
+        store.save_to_disk(&app)?;
+        Ok(created)
+    })
+}
+
+#[tauri::command]
+async fn create_supply_escrow(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    supplier_id: String,
+    sku: String,
+    quantity: i32,
+    amount: f64,
+) -> Result<SupplyChainEscrow, String> {
+    let (buyer_id, wallet_id) = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        (user.username.clone(), user.circle_wallet_id.clone())
+    };
+    let (_, usdc_balance) =
+        circle_client::get_wallet_balances(&state.config.api_gateway_url, &wallet_id).await?;
+    let buyer_balance: f64 = usdc_balance.parse().unwrap_or(0.0);
+    if buyer_balance < amount {
+        return Err(format!(
+            "Insufficient wallet balance: {usdc_balance} USDC available, {amount} required."
+        ));
+    }
+    let draft = SupplyChainEscrow {
+        supply_id: format!("sup-{}", now_unix()),
+        buyer_id: buyer_id.clone(),
+        supplier_id,
+        sku,
+        quantity,
+        amount,
+        status: "Draft".into(),
+        buyer_balance,
+    };
+    let engine = EscrowEngineClient::new(state.config.escrow_engine_url.clone());
+    let created = if engine.health().await {
+        engine.create_supply(&draft).await?
+    } else {
+        draft
+    };
+    with_store(&state, |store| {
+        store
+            .supply_escrows_by_user
+            .entry(buyer_id)
+            .or_default()
+            .push(created.clone());
+        store.save_to_disk(&app)?;
+        Ok(created)
+    })
+}
+
+#[tauri::command]
+fn list_marketing_escrows(state: State<AppState>) -> Result<Vec<MarketingEscrow>, String> {
+    let store = state.store.lock().map_err(|e| e.to_string())?;
+    let user = store
+        .current_user
+        .as_ref()
+        .ok_or_else(|| "Not signed in".to_string())?;
+    Ok(store
+        .marketing_escrows_by_user
+        .get(&user.username)
+        .cloned()
+        .unwrap_or_default())
+}
+
+#[tauri::command]
+fn list_supply_escrows(state: State<AppState>) -> Result<Vec<SupplyChainEscrow>, String> {
+    let store = state.store.lock().map_err(|e| e.to_string())?;
+    let user = store
+        .current_user
+        .as_ref()
+        .ok_or_else(|| "Not signed in".to_string())?;
+    Ok(store
+        .supply_escrows_by_user
+        .get(&user.username)
+        .cloned()
+        .unwrap_or_default())
+}
+
+#[tauri::command]
+async fn transition_marketing_escrow(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    marketing_id: String,
+    request_type: String,
+) -> Result<MarketingEscrow, String> {
+    let requester_id = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        store
+            .current_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .ok_or_else(|| "Not signed in".to_string())?
+    };
+    let current = with_store(&state, |store| {
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        store
+            .marketing_escrows_by_user
+            .get(&user.username)
+            .and_then(|list| list.iter().find(|m| m.marketing_id == marketing_id).cloned())
+            .ok_or_else(|| "Marketing escrow not found".to_string())
+    })?;
+    let req = TransitionRequest {
+        request_type,
+        requester_id,
+        duration_seconds: None,
+    };
+    let engine = EscrowEngineClient::new(state.config.escrow_engine_url.clone());
+    let updated = if engine.health().await {
+        engine.transition_marketing(&marketing_id, &req).await?
+    } else {
+        current
+    };
+    with_store(&state, |store| {
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        if let Some(list) = store.marketing_escrows_by_user.get_mut(&user.username) {
+            if let Some(slot) = list.iter_mut().find(|m| m.marketing_id == marketing_id) {
+                *slot = updated.clone();
+            }
+        }
+        store.save_to_disk(&app)?;
+        Ok(updated)
+    })
+}
+
+#[tauri::command]
+async fn transition_supply_escrow(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    supply_id: String,
+    request_type: String,
+) -> Result<SupplyChainEscrow, String> {
+    let requester_id = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        store
+            .current_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .ok_or_else(|| "Not signed in".to_string())?
+    };
+    let current = with_store(&state, |store| {
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        store
+            .supply_escrows_by_user
+            .get(&user.username)
+            .and_then(|list| list.iter().find(|s| s.supply_id == supply_id).cloned())
+            .ok_or_else(|| "Supply escrow not found".to_string())
+    })?;
+    let req = TransitionRequest {
+        request_type,
+        requester_id,
+        duration_seconds: None,
+    };
+    let engine = EscrowEngineClient::new(state.config.escrow_engine_url.clone());
+    let updated = if engine.health().await {
+        engine.transition_supply(&supply_id, &req).await?
+    } else {
+        current
+    };
+    with_store(&state, |store| {
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        if let Some(list) = store.supply_escrows_by_user.get_mut(&user.username) {
+            if let Some(slot) = list.iter_mut().find(|s| s.supply_id == supply_id) {
+                *slot = updated.clone();
+            }
+        }
+        store.save_to_disk(&app)?;
+        Ok(updated)
     })
 }
 
@@ -461,6 +933,7 @@ async fn place_call(
         caller_id_shown: "RESTRICTED".into(),
         session_id: session.session_id,
         connected: session.status == "Connected" || session.status == "connected",
+        to_dial_address: session.to_dial_address,
     })
 }
 
@@ -787,9 +1260,30 @@ async fn connect_personal_phone(
         }
     };
 
+    let (stellar_name, public_key) = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        (user.username.clone(), user.stellar_public_key.clone())
+    };
+
     let engine = TelephonyEngineClient::from_env();
     if engine.health().await {
-        engine.register_phone(&config).await?;
+        if let Err(e) = engine.register_phone(&config).await {
+            if !is_demo_mode() {
+                return Err(e);
+            }
+        } else {
+            let profile = StellarProfile {
+                stellar_name: stellar_name.clone(),
+                public_key: public_key.clone(),
+                dial_address: format_dial_address(&stellar_name, &public_key),
+                reachable: true,
+            };
+            let _ = engine.register_stellar_profile(&profile).await;
+        }
     }
 
     with_store(&state, |store| {
@@ -816,7 +1310,7 @@ async fn send_sms(
     body: String,
     gift_usdc: Option<f64>,
 ) -> Result<telephony::SmsMessage, String> {
-    let from_name = {
+    let (from_name, public_key) = {
         let store = state.store.lock().map_err(|e| e.to_string())?;
         let user = store
             .current_user
@@ -825,25 +1319,30 @@ async fn send_sms(
         if user.personal_phone.is_empty() {
             return Err("Connect your personal phone line in Settings first.".into());
         }
-        user.username.clone()
+        (user.username.clone(), user.stellar_public_key.clone())
     };
+    let signature = sign_sms_payload(&from_name, &public_key, &body);
     let engine = TelephonyEngineClient::from_env();
     let req = SendSmsRequest {
-        from_name,
-        to_name,
-        body,
+        from_name: from_name.clone(),
+        to_name: to_name.clone(),
+        body: body.clone(),
         gift_usdc,
+        stellar_public_key: public_key.clone(),
+        digital_signature: signature.clone(),
     };
     if engine.health().await {
         engine.send_sms(&req).await
     } else {
         Ok(telephony::SmsMessage {
             id: format!("local-{}", now_unix()),
-            from_name: req.from_name,
-            to_name: req.to_name,
-            body: req.body,
+            from_name,
+            to_name,
+            body,
             sent_at: now_unix() as i64,
             gift_usdc: req.gift_usdc,
+            stellar_public_key: public_key,
+            digital_signature: signature,
         })
     }
 }
@@ -959,7 +1458,20 @@ pub fn run() {
             send_sms,
             get_sms_messages,
             create_calendar_event,
-            get_calendar_events
+            get_calendar_events,
+            get_stellar_dial_address,
+            resolve_stellar_name,
+            get_pay_quote,
+            purchase_credits,
+            start_call_recording,
+            stop_call_recording,
+            list_call_recordings,
+            create_marketing_escrow,
+            create_supply_escrow,
+            list_marketing_escrows,
+            list_supply_escrows,
+            transition_marketing_escrow,
+            transition_supply_escrow
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

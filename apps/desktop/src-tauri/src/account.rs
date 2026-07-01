@@ -17,7 +17,13 @@ pub struct AccountStore {
     #[serde(default)]
     pub escrows_by_user: HashMap<String, Vec<EscrowContract>>,
     #[serde(default)]
+    pub marketing_escrows_by_user: HashMap<String, Vec<crate::models::MarketingEscrow>>,
+    #[serde(default)]
+    pub supply_escrows_by_user: HashMap<String, Vec<crate::models::SupplyChainEscrow>>,
+    #[serde(default)]
     pub active_call_session: Option<String>,
+    #[serde(default)]
+    pub active_recording_path: Option<String>,
     /// Legacy field — migrated into contacts_by_user on load.
     #[serde(default)]
     pub contacts: Vec<Contact>,

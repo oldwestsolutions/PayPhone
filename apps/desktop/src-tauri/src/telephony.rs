@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PhoneLineConfig {
     pub stellar_name: String,
     pub personal_phone: String,
@@ -11,6 +12,7 @@ pub struct PhoneLineConfig {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NameCallRequest {
     pub from_name: String,
     pub to_name: String,
@@ -18,6 +20,7 @@ pub struct NameCallRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CallSession {
     pub session_id: String,
     pub from_name: String,
@@ -28,6 +31,39 @@ pub struct CallSession {
     pub bridge_to: String,
     pub min_billable_seconds: i32,
     pub message: String,
+    #[serde(default)]
+    pub to_dial_address: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StellarProfile {
+    pub stellar_name: String,
+    pub public_key: String,
+    pub dial_address: String,
+    pub reachable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PayQuote {
+    pub storage_gib_months: f64,
+    pub transfer_mib: f64,
+    pub total_usdc: f64,
+    pub filecoin_rate: f64,
+    pub transfer_rate: f64,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CallRecording {
+    pub recording_id: String,
+    pub session_id: String,
+    pub owner_name: String,
+    pub local_path: String,
+    pub shared_token: String,
+    pub created_at: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -37,6 +73,7 @@ pub struct EndCallResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SmsMessage {
     pub id: String,
     pub from_name: String,
@@ -44,14 +81,21 @@ pub struct SmsMessage {
     pub body: String,
     pub sent_at: i64,
     pub gift_usdc: Option<f64>,
+    #[serde(default)]
+    pub stellar_public_key: String,
+    #[serde(default)]
+    pub digital_signature: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SendSmsRequest {
     pub from_name: String,
     pub to_name: String,
     pub body: String,
     pub gift_usdc: Option<f64>,
+    pub stellar_public_key: String,
+    pub digital_signature: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,7 +147,13 @@ impl TelephonyEngineClient {
 
     pub async fn register_phone(&self, config: &PhoneLineConfig) -> Result<PhoneLineConfig, String> {
         let url = format!("{}/v1/phones/register", self.base_url.trim_end_matches('/'));
-        self.post(&url, config).await
+        let mut payload = config.clone();
+        payload.account_type = if config.account_type.eq_ignore_ascii_case("business") {
+            "Business".into()
+        } else {
+            "Consumer".into()
+        };
+        self.post(&url, &payload).await
     }
 
     pub async fn initiate_name_call(&self, req: &NameCallRequest) -> Result<CallSession, String> {
@@ -211,6 +261,71 @@ impl TelephonyEngineClient {
         }
     }
 
+    pub async fn resolve_stellar(&self, name: &str) -> Result<StellarProfile, String> {
+        let url = format!(
+            "{}/v1/stellar/{}",
+            self.base_url.trim_end_matches('/'),
+            name
+        );
+        self.get(&url).await
+    }
+
+    pub async fn pay_quote(&self, storage_gib: f64, transfer_mib: f64, reason: &str) -> Result<PayQuote, String> {
+        let url = format!("{}/v1/pay/quote", self.base_url.trim_end_matches('/'));
+        self.post(
+            &url,
+            &serde_json::json!({
+                "storageGibMonths": storage_gib,
+                "transferMib": transfer_mib,
+                "reason": reason,
+            }),
+        )
+        .await
+    }
+
+    pub async fn register_recording(
+        &self,
+        session_id: &str,
+        owner_name: &str,
+        local_path: &str,
+    ) -> Result<CallRecording, String> {
+        let url = format!("{}/v1/recordings/register", self.base_url.trim_end_matches('/'));
+        self.post(
+            &url,
+            &serde_json::json!({
+                "sessionId": session_id,
+                "ownerName": owner_name,
+                "localPath": local_path,
+            }),
+        )
+        .await
+    }
+
+    pub async fn list_recordings(&self, owner_name: &str) -> Result<Vec<CallRecording>, String> {
+        let url = format!(
+            "{}/v1/recordings/{}",
+            self.base_url.trim_end_matches('/'),
+            owner_name
+        );
+        self.get(&url).await
+    }
+
+    pub async fn register_stellar_profile(&self, profile: &StellarProfile) -> Result<(), String> {
+        let url = format!("{}/v1/stellar/register", self.base_url.trim_end_matches('/'));
+        let resp = self
+            .client
+            .post(&url)
+            .json(profile)
+            .send()
+            .await
+            .map_err(|e| format!("Telephony engine unreachable: {e}"))?;
+        if resp.status().is_success() {
+            Ok(())
+        } else {
+            Err("Failed to register stellar profile".into())
+        }
+    }
+
     /// Offline fallback when Haskell engine is down.
     pub fn simulate_name_call(req: &NameCallRequest) -> CallSession {
         CallSession {
@@ -222,6 +337,7 @@ impl TelephonyEngineClient {
             bridge_from: "local".into(),
             bridge_to: "local".into(),
             min_billable_seconds: 60,
+            to_dial_address: format!("@{}", req.to_name),
             message: format!(
                 "Name-to-name call to @{}. Callee sees RESTRICTED.",
                 req.to_name

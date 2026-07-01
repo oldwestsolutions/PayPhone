@@ -50,6 +50,10 @@ function AuthScreen({ onSuccess }: { onSuccess: (u: UserAccount) => void }) {
           circle_wallet_address: r.circle_wallet_address,
           masked_number: r.masked_number,
           storage_paid: r.storage_paid,
+          personal_phone: "",
+          account_type: "consumer",
+          storage_credits_gib: 0,
+          comms_credits: 0,
         });
       } else {
         onSuccess(await invoke<UserAccount>("login_account", { username, password }));
@@ -228,6 +232,14 @@ export default function App() {
       />
     );
   if (phase === "app" && user)
-    return <MainShell user={user} section={section} onSection={setSection} onLogout={logout} />;
+    return (
+      <MainShell
+        user={user}
+        section={section}
+        onSection={setSection}
+        onLogout={logout}
+        onUserUpdate={setUser}
+      />
+    );
   return null;
 }

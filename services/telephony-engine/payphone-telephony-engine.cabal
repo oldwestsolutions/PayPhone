@@ -7,7 +7,7 @@ license: MIT
 executable telephony-engine
   main-is: Main.hs
   hs-source-dirs: .
-  other-modules: Telephony.Types, Telephony.Routing, Telephony.Tolls, Telephony.Billing
+  other-modules: Telephony.Types, Telephony.Routing, Telephony.Tolls, Telephony.Billing, Telephony.StellarAddress, Telephony.SmsSignature, Telephony.Storage
   build-depends:
     base,
     aeson,

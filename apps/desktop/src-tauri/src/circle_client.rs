@@ -52,17 +52,31 @@ pub fn demo_wallet(username: &str) -> CircleWallet {
     }
 }
 
-/// Creates a Circle wallet via the Payphone gateway.
+pub fn demo_mode() -> bool {
+    std::env::var("PAYPHONE_DEMO_MODE")
+        .map(|v| v != "false" && v != "0")
+        .unwrap_or(true)
+}
+
+/// Creates a Circle wallet via the Payphone gateway (demo wallet if gateway unavailable).
 pub async fn create_wallet(gateway_url: &str, username: &str) -> Result<CircleWallet, String> {
     let url = format!("{}/api/wallet/create", gateway_url.trim_end_matches('/'));
     let body = serde_json::json!({ "username": username });
 
     let resp = match reqwest::Client::new().post(&url).json(&body).send().await {
         Ok(r) => r,
-        Err(e) => return Err(format!("Gateway unreachable: {e}")),
+        Err(e) => {
+            if demo_mode() {
+                return Ok(demo_wallet(username));
+            }
+            return Err(format!("Gateway unreachable: {e}"));
+        }
     };
 
     if !resp.status().is_success() {
+        if demo_mode() {
+            return Ok(demo_wallet(username));
+        }
         let status = resp.status();
         let msg = resp.json::<ErrorBody>().await.ok().and_then(|b| b.error);
         return Err(msg.unwrap_or_else(|| format!("Gateway error {status}")));
@@ -79,12 +93,21 @@ pub async fn create_wallet(gateway_url: &str, username: &str) -> Result<CircleWa
     })
 }
 
+pub fn demo_usdc_balance() -> String {
+    "1000.00".into()
+}
+
 pub async fn get_wallet_balances(
     gateway_url: &str,
     wallet_id: &str,
 ) -> Result<(Vec<CircleBalance>, String), String> {
     if wallet_id.starts_with("circle-demo-") {
-        return Ok((vec![], "0".into()));
+        let usdc = if demo_mode() {
+            demo_usdc_balance()
+        } else {
+            "0".into()
+        };
+        return Ok((vec![], usdc));
     }
 
     let url = format!(

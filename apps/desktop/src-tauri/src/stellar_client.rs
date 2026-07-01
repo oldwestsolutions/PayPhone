@@ -34,6 +34,26 @@ pub fn validate_stellar_username(username: &str) -> Result<(), String> {
     Ok(())
 }
 
+pub fn format_dial_address(name: &str, public_key: &str) -> String {
+    let tail = if public_key.len() > 12 {
+        format!(
+            "{}…{}",
+            &public_key[..8.min(public_key.len())],
+            &public_key[public_key.len().saturating_sub(4)..]
+        )
+    } else {
+        public_key.to_string()
+    };
+    format!("@{name} · {tail}")
+}
+
+pub fn sign_sms_payload(stellar_name: &str, public_key: &str, body: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(format!("{stellar_name}|{public_key}|{body}").as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
 pub fn register_username(username: &str) -> Result<StellarIdentity, String> {
     validate_stellar_username(username)?;
 

@@ -2,7 +2,15 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { UserAccount } from "../types";
 
-export function SettingsPanel({ user, onLogout }: { user: UserAccount; onLogout: () => void }) {
+export function SettingsPanel({
+  user,
+  onLogout,
+  onUserUpdate,
+}: {
+  user: UserAccount;
+  onLogout: () => void;
+  onUserUpdate?: (u: UserAccount) => void;
+}) {
   const [phone, setPhone] = useState(user.personal_phone || "");
   const [accountType, setAccountType] = useState(user.account_type || "consumer");
   const [callToll, setCallToll] = useState(user.account_type === "business" ? "" : "");
@@ -15,13 +23,14 @@ export function SettingsPanel({ user, onLogout }: { user: UserAccount; onLogout:
     e.preventDefault();
     setError("");
     try {
-      await invoke("connect_personal_phone", {
+      const updated = await invoke<UserAccount>("connect_personal_phone", {
         personalPhone: phone,
         accountType,
         callTollUsdc: accountType === "business" && callToll ? parseFloat(callToll) : null,
         smsTollUsdc: accountType === "business" && smsToll ? parseFloat(smsToll) : null,
         messageGiftUsdc: gift ? parseFloat(gift) : null,
       });
+      onUserUpdate?.({ ...user, ...updated });
       setNotice("Personal phone line connected. Name-to-name calls enabled.");
     } catch (err) {
       setError(String(err));

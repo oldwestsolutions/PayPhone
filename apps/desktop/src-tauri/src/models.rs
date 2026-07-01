@@ -27,6 +27,10 @@ pub struct UserAccount {
     #[serde(default)]
     pub storage_paid: bool,
     pub storage_invoice_id: Option<String>,
+    #[serde(default)]
+    pub storage_credits_gib: f64,
+    #[serde(default)]
+    pub comms_credits: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,6 +46,10 @@ pub struct PublicUser {
     pub account_type: String,
     #[serde(default)]
     pub storage_paid: bool,
+    #[serde(default)]
+    pub storage_credits_gib: f64,
+    #[serde(default)]
+    pub comms_credits: f64,
 }
 
 impl From<UserAccount> for PublicUser {
@@ -55,6 +63,8 @@ impl From<UserAccount> for PublicUser {
             personal_phone: u.personal_phone.clone(),
             account_type: u.account_type.clone(),
             storage_paid: u.storage_paid,
+            storage_credits_gib: u.storage_credits_gib,
+            comms_credits: u.comms_credits,
         }
     }
 }
@@ -112,6 +122,42 @@ pub struct PlaceCallResult {
     pub caller_id_shown: String,
     pub session_id: String,
     pub connected: bool,
+    #[serde(default)]
+    pub to_dial_address: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MarketingEscrow {
+    pub marketing_id: String,
+    pub brand_id: String,
+    pub creator_id: String,
+    pub campaign_name: String,
+    pub amount: f64,
+    pub status: String,
+    pub buyer_balance: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SupplyChainEscrow {
+    pub supply_id: String,
+    pub buyer_id: String,
+    pub supplier_id: String,
+    pub sku: String,
+    pub quantity: i32,
+    pub amount: f64,
+    pub status: String,
+    pub buyer_balance: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreditPurchaseResult {
+    pub usdc_paid: f64,
+    pub storage_gib_months: f64,
+    pub comms_units: f64,
+    pub tx_ref: String,
+    pub solidity_contract: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

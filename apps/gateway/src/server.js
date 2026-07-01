@@ -142,6 +142,68 @@ app.post("/api/escrow/fund", async (req, res) => {
   }
 });
 
+app.post("/api/pay/purchase-credits", async (req, res) => {
+  try {
+    const walletId = String(req.body?.walletId || "").trim();
+    const usdcAmount = Number(req.body?.usdcAmount || 0);
+    const username = String(req.body?.username || "").trim();
+
+    if (!walletId || !usdcAmount || usdcAmount <= 0) {
+      return res.status(400).json({ error: "walletId and positive usdcAmount are required" });
+    }
+    if (!cfg.escrowAddress) {
+      return res.status(503).json({
+        error: "PAYPHONE_ESCROW_WALLET_ADDRESS is not configured (PayPhoneCredits platform recipient)",
+      });
+    }
+
+    const storageGibMonths = usdcAmount;
+    const commsUnits = usdcAmount * 1000;
+    const client = circleClient();
+    const tx = await createUsdcTransfer(client, {
+      walletId,
+      destinationAddress: cfg.escrowAddress,
+      amount: usdcAmount.toFixed(2),
+      refId: `credits-${username || walletId}`,
+    });
+
+    return res.status(201).json({
+      data: {
+        txRef: tx.id,
+        usdcPaid: usdcAmount,
+        storageGibMonths,
+        commsUnits,
+        solidityContract: "PayPhoneCredits",
+        quote: {
+          filecoinRatePerGibMonth: 0.5,
+          transferRatePerMib: 0.02,
+        },
+      },
+    });
+  } catch (err) {
+    console.error("[pay/purchase-credits]", err);
+    return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.post("/api/pay/quote", async (req, res) => {
+  const storageGib = Number(req.body?.storageGibMonths || 0);
+  const transferMib = Number(req.body?.transferMib || 0);
+  const reason = String(req.body?.reason || "storage");
+  const totalUsdc = storageGib * 0.5 + transferMib * 0.02;
+  return res.json({
+    data: {
+      storageGibMonths: storageGib,
+      transferMib,
+      totalUsdc,
+      filecoinRate: 0.5,
+      transferRate: 0.02,
+      reason,
+      solidityContract: "PayPhoneCredits",
+    },
+  });
+});
+
 app.get("/api/transaction/:txId", async (req, res) => {
   try {
     const client = circleClient();

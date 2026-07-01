@@ -7,34 +7,34 @@ import qualified Data.Map as Map
 import Data.Text (Text)
 import qualified Data.Text as T
 import Telephony.Types
+import Telephony.StellarAddress (normalizeDialInput, resolveDialTarget)
 import Telephony.Tolls (validateTollPolicy)
 
 -- | Initiate a name-to-name call: bridges personal lines; callee sees RESTRICTED.
 initiateNameCall :: Map String PhoneLine -> NameCallPayload -> Either Text CallSession
 initiateNameCall lines payload =
-  case Map.lookup (fromName payload) lines of
+  let target = normalizeDialInput (toName payload)
+  in case Map.lookup (fromName payload) lines of
     Nothing -> Left "Caller must connect a personal phone line in Settings"
     Just fromLine ->
-      case Map.lookup (toName payload) lines of
+      case Map.lookup target lines of
         Nothing -> Left "Callee has not connected a personal phone line"
         Just toLine -> do
           validateTollPolicy toLine (callTollUsdc toLine)
-          let sid = "call-" ++ fromName payload ++ "-" ++ toName payload ++ "-" ++ show (length (Map.keys lines))
+          let sid = "call-" ++ fromName payload ++ "-" ++ target ++ "-" ++ show (length (Map.keys lines))
+              dialAddr = resolveDialTarget target Nothing
           Right CallSession
             { sessionId = sid
             , fromName = fromName payload
-            , toName = toName payload
+            , toName = target
             , callerIdShown = restrictedCallerId
             , status = Connected
             , bridgeFrom = personalPhone fromLine
             , bridgeTo = personalPhone toLine
             , minBillableSeconds = defaultMinBillableSeconds
+            , toDialAddress = dialAddr
             , message = T.unpack $
-                "Name-to-name call active. Callee sees RESTRICTED. Bridging "
-                <> T.pack (stellarName fromLine)
-                <> " → "
-                <> T.pack (stellarName toLine)
-                <> " via Payphone proxy."
+                "Calling " <> T.pack dialAddr <> ". Callee sees RESTRICTED via Payphone mask proxy."
             }
 
 registerPhone :: Map String PhoneLine -> RegisterPhonePayload -> Either Text PhoneLine
