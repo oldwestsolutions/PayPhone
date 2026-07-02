@@ -10,6 +10,7 @@ import {
   introBand,
   problemMarkets,
   useCases,
+  site,
 } from "@/lib/content";
 import { cn } from "@/lib/utils";
 
@@ -29,7 +30,7 @@ function FeatureIllustration({ variant }: { variant: string }) {
     );
   }
 
-  if (variant === "privacy") {
+  if (variant === "privacy" || variant === "noncustodial") {
     return (
       <div className="rounded-3xl border border-luxury-border bg-luxury-panel p-8 min-h-[280px] flex flex-col justify-center space-y-4">
         <div className="flex items-center gap-3">
@@ -85,12 +86,34 @@ function FeatureIllustration({ variant }: { variant: string }) {
     );
   }
 
+  if (variant === "orchestration") {
+    return (
+      <div className="rounded-3xl border border-luxury-border bg-luxury-panel p-8 min-h-[280px] flex flex-col justify-center space-y-3 font-mono text-sm">
+        <p className="text-emerald-400">Intent → Route → Execute</p>
+        <p className="text-luxury-gray">MATIC 50 → USDC 10.89</p>
+        <p className="text-luxury-gray-dim">0.5% service · Uniswap 0.3% network</p>
+        <p className="text-white text-xs">valid 28s · confirm to execute</p>
+      </div>
+    );
+  }
+
+  if (variant === "fees" || variant === "ledger") {
+    return (
+      <div className="rounded-3xl border border-luxury-border bg-luxury-panel p-8 min-h-[280px] flex flex-col justify-center space-y-2 font-mono text-xs text-luxury-gray">
+        <p className="text-white">IntentValidated</p>
+        <p>RoutePlanSelected</p>
+        <p>StepCompleted</p>
+        <p className="text-emerald-400">TransactionFinalized</p>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-3xl border border-white/20/30 bg-luxury-elevated p-8 min-h-[280px] flex flex-col justify-center space-y-4">
-      <p className="text-3xl font-mono font-light text-white">docker compose up</p>
-      <p className="text-sm text-luxury-gray">5 services · PostgreSQL · Redis · Twilio</p>
+      <p className="text-3xl font-mono font-light text-white">npm run services:dev</p>
+      <p className="text-sm text-luxury-gray">Gateway · Intent · Routing · Ledger · Telephony</p>
       <div className="flex flex-wrap gap-2">
-        {["API", "Session", "CRM", "Comm", "Haskell", "BTCPay"].map((s) => (
+        {["Intent", "Route", "Execute", "Circle", "Escrow", "BTCPay"].map((s) => (
           <span key={s} className="rounded-pill bg-luxury-black border border-luxury-border px-3 py-1 text-xs text-luxury-gray">
             {s}
           </span>
@@ -110,10 +133,17 @@ export function FeatureSections() {
       </section>
 
       <div id="features">
-        {featureSections.map((section) => (
+        {featureSections.map((section) => {
+          const anchorId =
+            section.id === "noncustodial"
+              ? "privacy"
+              : section.id === "orchestration" || section.id === "fees"
+                ? section.id
+                : undefined;
+          return (
           <section
             key={section.id}
-            id={section.id === "privacy" ? "privacy" : undefined}
+            id={anchorId}
             className={cn("py-16 md:py-24", section.accent)}
           >
             <div className="mx-auto max-w-7xl px-4">
@@ -125,23 +155,7 @@ export function FeatureSections() {
               >
                 <div className="space-y-5">
                   <p className="section-eyebrow">{section.eyebrow}</p>
-                  <h2 className="heading-section">
-                    {section.title.includes("freely") ? (
-                      <>
-                        Speak
-                        <br />
-                        <strong className="font-semibold text-white">freely</strong>
-                      </>
-                    ) : section.title.includes("without exposure") ? (
-                      <>
-                        Message
-                        <br />
-                        <strong className="font-semibold text-white">without exposure</strong>
-                      </>
-                    ) : (
-                      section.title
-                    )}
-                  </h2>
+                  <h2 className="heading-section">{section.title}</h2>
                   <p className="text-base leading-relaxed max-w-lg text-luxury-gray">
                     {section.body}
                   </p>
@@ -157,13 +171,14 @@ export function FeatureSections() {
               </div>
             </div>
           </section>
-        ))}
+          );
+        })}
       </div>
 
       <section id="executive-summary" className="py-16 md:py-24 bg-luxury-dark scroll-mt-24">
         <div className="mx-auto max-w-7xl px-4">
           <div className="max-w-3xl space-y-6">
-            <p className="section-eyebrow">Whitepaper v2.0</p>
+            <p className="section-eyebrow">Whitepaper v{site.whitepaperVersion}</p>
             <h2 className="heading-section">{executiveSummary.title}</h2>
             {executiveSummary.paragraphs.map((p) => (
               <p key={p.slice(0, 40)} className="text-base text-luxury-gray leading-relaxed">
@@ -195,10 +210,10 @@ export function FeatureSections() {
         <div className="mx-auto max-w-7xl px-4">
           <div className="max-w-2xl mb-12 space-y-4">
             <p className="section-eyebrow">System overview</p>
-            <h2 className="heading-section">Five core services</h2>
+            <h2 className="heading-section">Six core services</h2>
             <p className="text-luxury-gray">
-              Loosely coupled microservices communicating through a Redis event bus. Start
-              everything with{" "}
+              Intent engine, routing, execution orchestrator, ledger, telephony, and escrow—plus
+              MongoDB and Redis. Start with{" "}
               <code className="text-sm bg-luxury-panel border border-luxury-border px-2 py-0.5 rounded text-white">
                 docker compose up
               </code>
@@ -307,7 +322,7 @@ export function FeatureSections() {
         <div className="relative mx-auto max-w-2xl px-4 space-y-6">
           <h2 className="heading-section">Download Payphone</h2>
           <p className="text-luxury-gray">
-            Enterprise desktop app with Haskell escrow engine and BTCPayServer integration.
+            Non-custodial cross-asset orchestration desktop app—Intent · Route · Execute · Settle.
           </p>
           <Link href="/download" className="btn-download">
             Get the desktop app

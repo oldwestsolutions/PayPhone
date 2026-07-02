@@ -85,15 +85,22 @@ export function AdminPanel() {
   );
 }
 
-export function BondPanel({ user }: { user: UserAccount }) {
-  const [bonds, setBonds] = useState<unknown[]>([]);
+type BondRecord = {
+  bond_id?: string;
+  amount?: number;
+  status?: string;
+  escrow_contract_id?: string;
+};
+
+export function BondPanel({ user: _user }: { user: UserAccount }) {
+  const [bonds, setBonds] = useState<BondRecord[]>([]);
   const [escrowId, setEscrowId] = useState("");
   const [counterparty, setCounterparty] = useState("");
   const [amount, setAmount] = useState("50");
   const [error, setError] = useState("");
 
   function refresh() {
-    invoke<unknown[]>("list_bonds").then(setBonds).catch(() => setBonds([]));
+    invoke<BondRecord[]>("list_bonds").then(setBonds).catch(() => setBonds([]));
   }
 
   useEffect(() => {
@@ -131,7 +138,7 @@ export function BondPanel({ user }: { user: UserAccount }) {
 
       <ul className="escrow-list">
         {bonds.length === 0 && <li className="empty">No bonds posted</li>}
-        {bonds.map((b: Record<string, unknown>) => (
+        {bonds.map((b) => (
           <li key={String(b.bond_id)} className="order-card" style={{ listStyle: "none" }}>
             <strong>{String(b.bond_id)}</strong>
             <p className="order-meta">
