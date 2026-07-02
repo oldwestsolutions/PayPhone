@@ -49,6 +49,8 @@ export class PaymentOrchestrator {
       payment.feeConfiguration = calculateFees(payment);
     }
 
+    const route = payment.metadata?.route;
+
     const adapter = this.adapters.get(payment.adapter);
     if (!adapter) {
       payment = transitionPayment(payment, "FAILED");
