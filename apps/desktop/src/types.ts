@@ -194,6 +194,70 @@ export type SendUsdcResult = {
   simulated: boolean;
 };
 
+export type CanonicalIntent = {
+  intentId: string;
+  assetIn: string;
+  amountIn: number;
+  assetOut: string;
+  recipient: string | null;
+  purpose: { type: string; recipient?: string; contractId?: string; invoiceId?: string };
+  urgency: string;
+  submittedBy: string;
+  estimatedFee: {
+    serviceFeePercent: number;
+    networkFeePassthrough: string;
+    totalEstimatedFee: string;
+    feeNote: string;
+  };
+  submittedAt: number;
+};
+
+export type RouteStep = {
+  step_index: number;
+  step_type: string;
+  asset_in: string;
+  asset_out: string;
+  amount_in: string;
+  estimated_amount_out: string;
+  provider: string;
+  network: string;
+  estimated_fee_usdc: string;
+  estimated_latency_ms: number;
+};
+
+export type RoutePlan = {
+  route_plan_id: string;
+  intent_id: string;
+  steps: RouteStep[];
+  estimated_output_amount: string;
+  estimated_output_asset: string;
+  service_fee_usdc: string;
+  network_fee_usdc: string;
+  total_fee_usdc: string;
+  selected_reason: string;
+  fee_note: string;
+  valid_until_unix: number;
+};
+
+export type ExecutionStatus = {
+  execution_id: string;
+  intent_id: string;
+  route_plan_id: string;
+  status: string;
+  steps: { step_index: number; status: string; error?: string; result?: unknown }[];
+  error?: string;
+};
+
+export type LedgerEvent = {
+  event_id: string;
+  event_type: string;
+  intent_id: string | null;
+  actor: string;
+  hash: string;
+  recorded_at: number;
+  payload?: unknown;
+};
+
 export type SettlementResult = {
   seller_amount: number;
   platform_fee: number;
@@ -211,6 +275,8 @@ export type AppSection =
   | "escrow"
   | "procurement"
   | "bonds"
+  | "swap"
+  | "routes"
   | "admin"
   | "business"
   | "settings";

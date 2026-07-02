@@ -6,6 +6,9 @@
 const TELEPHONY = process.env.PAYPHONE_TELEPHONY_ENGINE_URL || "http://localhost:4010";
 const ESCROW = process.env.PAYPHONE_ESCROW_ENGINE_URL || "http://localhost:4004";
 const GATEWAY = process.env.PAYPHONE_API_GATEWAY_URL || "http://localhost:4000";
+const INTENT = process.env.INTENT_ENGINE_URL || "http://localhost:4008";
+const ROUTING = process.env.ROUTING_ENGINE_URL || "http://localhost:4009";
+const LEDGER = process.env.LEDGER_SERVICE_URL || "http://localhost:4012";
 
 let passed = 0;
 let failed = 0;
@@ -210,6 +213,43 @@ async function main() {
       }),
     });
     if (r.data?.platform_fee == null) throw new Error("no fee");
+  });
+
+  await check("Intent engine health", async () => {
+    const h = await json(`${INTENT}/health`);
+    if (!h.ok) throw new Error("intent not ok");
+  });
+
+  await check("Routing engine health", async () => {
+    const h = await json(`${ROUTING}/health`);
+    if (!h.ok) throw new Error("routing not ok");
+  });
+
+  await check("Ledger service health", async () => {
+    const h = await json(`${LEDGER}/health`);
+    if (!h.ok) throw new Error("ledger not ok");
+  });
+
+  await check("V6 intent MATIC→USDC validate", async () => {
+    const r = await json(`${INTENT}/v1/intent/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rawAssetIn: "MATIC",
+        rawAmountIn: "50",
+        rawAssetOut: "USDC",
+        rawPurpose: "fund_wallet",
+        rawUrgency: "Balanced",
+        rawSubmittedBy: "smoke.99test",
+      }),
+    });
+    if (!r.ok || !r.data?.intentId) throw new Error("intent submit failed");
+    const route = await json(`${ROUTING}/v1/routes/evaluate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ intentId: r.data.intentId }),
+    });
+    if (!route.ok || !route.data?.route_plan_id) throw new Error("route evaluate failed");
   });
 
   await check("Platform revenue endpoint", async () => {

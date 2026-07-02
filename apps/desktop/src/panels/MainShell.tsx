@@ -7,6 +7,8 @@ import { EscrowPanel } from "./EscrowPanel";
 import { ProcurementPanel } from "./ProcurementPanel";
 import { BusinessPanel } from "./BusinessPanel";
 import { AdminPanel, BondPanel } from "./AdminBondPanels";
+import { SwapPanel } from "./SwapPanel";
+import { RoutingPanel } from "./RoutingPanel";
 import { MessagesPanel } from "./MessagesPanel";
 import { CalendarPanel } from "./CalendarPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -16,6 +18,8 @@ const NAV: { id: AppSection; label: string; icon: string }[] = [
   { id: "communications", label: "Phone", icon: "◎" },
   { id: "messages", label: "Messages", icon: "💬" },
   { id: "wallet", label: "Wallet", icon: "$" },
+  { id: "swap", label: "Swap", icon: "⇄" },
+  { id: "routes", label: "Routes", icon: "↯" },
   { id: "escrow", label: "Orders", icon: "📦" },
   { id: "procurement", label: "Procurement", icon: "🚚" },
   { id: "bonds", label: "Bonds", icon: "🔒" },
@@ -48,7 +52,7 @@ export function MainShell({
           <PhoneIcon size={28} className="brand-bell" />
           <div>
             <span className="brand-title">Payphone</span>
-            <span className="brand-sub">Call · Pay · Ship</span>
+            <span className="brand-sub">Intent · Route · Execute</span>
           </div>
         </div>
         <nav className="shell-nav">
@@ -96,6 +100,8 @@ export function MainShell({
         {section === "messages" && <MessagesPanel user={user} />}
         {section === "calendar" && <CalendarPanel />}
         {section === "wallet" && <WalletPanel />}
+        {section === "swap" && <SwapPanel user={user} />}
+        {section === "routes" && <RoutingPanel />}
         {section === "pay" && <PayPanel user={user} onCreditsUpdated={onUserUpdate} />}
         {section === "escrow" && <EscrowPanel />}
         {section === "procurement" && <ProcurementPanel />}

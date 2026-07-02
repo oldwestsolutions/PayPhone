@@ -1,4 +1,5 @@
 mod gateway_auth;
+mod intent;
 mod account;
 mod btcpay;
 mod circle_client;
@@ -1871,7 +1872,13 @@ pub fn run() {
             create_bond,
             list_admin_disputes,
             resolve_dispute_admin,
-            create_dispute
+            create_dispute,
+            intent::submit_intent,
+            intent::get_route,
+            intent::confirm_execution,
+            intent::get_execution_status,
+            intent::get_supported_asset_pairs,
+            intent::get_ledger_chain
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

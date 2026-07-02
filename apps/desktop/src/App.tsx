@@ -17,7 +17,7 @@ function SplashScreen({ onDone }: { onDone: () => void }) {
     <div className="splash">
       <PhoneIcon size={56} className="splash-bell" />
       <h1>Payphone</h1>
-      <p>Call · Pay · Ship</p>
+      <p>Intent · Route · Execute</p>
     </div>
   );
 }

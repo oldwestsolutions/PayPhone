@@ -42,6 +42,7 @@ import {
   legacyProcurementRelease,
   legacyPurchaseCredits,
 } from "./legacy-payment.js";
+import { registerOrchestrationRoutes } from "./orchestration.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
@@ -86,6 +87,8 @@ app.get("/health", (_req, res) => {
     platform_fee_wallet_id: cfg.platformFeeWalletId || null,
     payment_layer: true,
     btcpay_configured: btcpayConfigured(),
+    intent_engine: Boolean(process.env.INTENT_ENGINE_URL || true),
+    routing_engine: Boolean(process.env.ROUTING_ENGINE_URL || true),
   });
 });
 
@@ -518,6 +521,8 @@ app.get("/api/transaction/:txId", async (req, res) => {
     return res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
 });
+
+registerOrchestrationRoutes(app, authMiddleware);
 
 app.listen(PORT, async () => {
   try {

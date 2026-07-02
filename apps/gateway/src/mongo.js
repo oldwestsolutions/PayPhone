@@ -30,6 +30,9 @@ async function ensureIndexes(database) {
   await database.collection("claims").createIndex({ claim_id: 1 }, { unique: true });
   await database.collection("storage_invoices").createIndex({ invoice_id: 1 }, { unique: true });
   await database.collection("storage_invoices").createIndex({ username: 1 });
+  await database.collection("intents").createIndex({ intent_id: 1 }, { unique: true });
+  await database.collection("route_plans").createIndex({ route_plan_id: 1 }, { unique: true });
+  await database.collection("execution_events").createIndex({ event_id: 1 }, { unique: true });
 }
 
 export async function persistPayment(payment) {
