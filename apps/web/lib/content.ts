@@ -4,196 +4,209 @@ export const site = {
   name: "payphone.cc",
   brand: "Payphone",
   domain: "payphone.cc",
-  tagline: "International Tele Communications",
+  tagline: "Non-Custodial Cross-Asset Orchestration",
   legalName: "Old West Solutions LLC",
-  whitepaperVersion: "2.0",
-  enterpriseVersion: "3.0",
+  whitepaperVersion: "6.0",
+  enterpriseVersion: "6.0",
   registeredOffice: "1010 Pine Street, St. Louis, MO 63101",
   regulatoryRef: "PP-2847-US",
 } as const;
 
 export const topNav: NavItem[] = [
+  { label: "Orchestration", href: "/#orchestration" },
   { label: "Features", href: "/#features" },
-  { label: "Privacy", href: "/#privacy" },
-  { label: "Plans", href: "/business" },
-  { label: "For Business", href: "/business" },
+  { label: "Fees", href: "/#fees" },
+  { label: "Download", href: "/download" },
 ];
 
 export const hero = {
-  title: "Call anyone. Keep your number private.",
+  title: "Intent. Route. Execute. Settle.",
   subtitle:
-    "Payphone is the phone app for people who travel, trade, and do business across borders—clear voice, simple messaging, and a number that works everywhere you do.",
-  disclaimer: "* Standard data rates may apply depending on your carrier and region.",
+    "Payphone is a non-custodial cross-asset orchestration layer on top of communications, escrow, and Circle USDC. Say what you want—\"50 MATIC to USDC in my wallet\"—and Payphone evaluates paths across Uniswap, Stellar SDEX, Circle, and BTCPay, shows every fee before you confirm, and executes step by step. We never hold your keys or your assets.",
+  disclaimer: "* Network fees are passed through at provider cost. Payphone's orchestration service fee is 0.5% per executed intent.",
   ctaPrimary: "Download App",
   ctaPrimaryHref: "/download",
-  ctaSecondary: "Log in",
+  ctaSecondary: "Create account",
   ctaSecondaryHref: "/account",
   chatBubbles: {
-    outgoing: { text: "Are you free to talk now? 11:53", read: true },
+    outgoing: { text: "Route 0.05 BTC → USDC for escrow ctr_abc 11:53", read: true },
     incoming: {
-      name: "Alex",
-      text: "Yes — calling you in a minute! 11:59",
-      reactions: ["👍", "❤️"],
+      name: "Payphone",
+      text: "Best path: bridge + Circle · 0.5% service fee · confirm in 28s 11:59",
+      reactions: ["✓"],
     },
   },
   sessionCard: {
-    title: "Get your line",
-    subtitle: "Enter your mobile number",
+    title: "Start with intent",
+    subtitle: "Register with email and phone—then swap, call, and settle",
     disclaimer:
-      "By continuing, you agree to receive verification codes and service updates. See our Privacy Policy and Terms.",
-    cta: "Continue",
-    loginPrompt: "Already have an account?",
+      "Non-custodial: your Stellar keys and wallet signatures stay on your device. Payphone coordinates execution only.",
+    cta: "Create account",
+    loginPrompt: "Already registered?",
     loginLink: "Log in",
   },
 };
 
 export const introBand = {
   title:
-    "Whether you're closing a deal overseas or catching up with family abroad, Payphone keeps you connected—with the polish of a private line and the ease of an app.",
+    "Like a travel platform for money—Payphone does not own the airlines. We read your intent, quote optimal paths across external networks, and orchestrate execution while cryptographic authority stays with you.",
 };
 
 export const featureSections = [
   {
-    id: "voice",
-    eyebrow: "Crystal-clear calling",
-    title: "Hear every word, wherever you are",
-    body: "Place calls over Wi‑Fi or mobile data with the reliability you expect from a premium phone service. No crackling lines. No dropped conversations when it matters most.",
-    cta: "See how it works",
-    ctaHref: "/#features",
+    id: "orchestration",
+    eyebrow: "V6 orchestration layer",
+    title: "One intent, every asset",
+    body: "Submit a canonical intent: asset in, amount, asset out, purpose, urgency. The Haskell intent engine validates. The routing engine quotes Uniswap V3, Stellar path payments, Circle transfers, and BTC bridges concurrently. You see the full fee breakdown—0.5% service fee plus network fees at cost—before anything executes.",
+    cta: "Download desktop",
+    ctaHref: "/download",
     imageSide: "right" as const,
     accent: "bg-luxury-dark",
     dark: true as const,
   },
   {
-    id: "privacy",
-    eyebrow: "Your number, your rules",
-    title: "Speak freely",
-    body: "Share a Payphone line—not your personal mobile number. When the conversation ends, your private number stays private. Perfect for buyers, sellers, clients, and new contacts alike.",
-    cta: "Learn about privacy",
+    id: "noncustodial",
+    eyebrow: "Non-custodial by design",
+    title: "We coordinate—we never custody",
+    body: "Stellar secrets stay on your device. Circle programmable wallets are yours on mainnet. Uniswap swaps are signed by your wallet. BTCPay invoices go to your Bitcoin wallet. Payphone's routing and execution orchestrator calls external APIs in sequence; it does not maintain a balance sheet of user funds.",
+    cta: "Security model",
     ctaHref: "/#privacy",
     imageSide: "left" as const,
     accent: "bg-luxury-black",
     dark: true as const,
   },
   {
-    id: "marketplaces",
-    eyebrow: "Built for business",
-    title: "Stay close to your customers",
-    body: "Respond in minutes, not hours. Payphone helps teams answer faster, sound professional, and never miss the call that closes the sale.",
-    cta: "For teams",
-    ctaHref: "/business",
+    id: "voice",
+    eyebrow: "Communications + payments",
+    title: "Call, message, and move value",
+    body: "RingCentral-style phone and iMessage-style threads sit beside a Cash App–style USDC wallet. Masked lines, tolls, and peer payments flow through the same payment layer as escrow, procurement, and cross-asset swaps.",
+    cta: "See features",
+    ctaHref: "/#features",
     imageSide: "right" as const,
     accent: "bg-luxury-dark",
     dark: true as const,
   },
   {
-    id: "messaging",
-    eyebrow: "Messaging included",
-    title: "Text without the exposure",
-    body: "Send and receive messages from the same app you use to call. Keep work and personal threads separate—without juggling two phones.",
-    cta: "Explore messaging",
-    ctaHref: "/#features",
+    id: "escrow",
+    eyebrow: "Escrow & procurement",
+    title: "Fiverr-style orders with on-chain settlement",
+    body: "Fund escrow contracts, release milestones, post job bonds, and resolve disputes through admin arbitration. Appeals cost $10 USDC. Every outcome is written to MongoDB and the immutable ledger event chain.",
+    cta: "Create account",
+    ctaHref: "/account",
     imageSide: "left" as const,
     accent: "bg-luxury-black",
     dark: true as const,
   },
   {
-    id: "business",
-    eyebrow: "For growing teams",
-    title: "A phone system that scales with you",
-    body: "From solo operators to distributed teams, Payphone gives you a professional presence on day one. Simple setup. Transparent pricing. No hardware closet required.",
-    cta: "Talk to us",
-    ctaHref: "/business",
+    id: "fees",
+    eyebrow: "Transparent fee architecture",
+    title: "0.5% service fee. No hidden spread.",
+    body: "Service fee: 0.5% of transaction value—Payphone's only orchestration revenue. Network fees: passed through exactly as quoted by Uniswap, Stellar, Circle, or bridge providers. Quotes expire in 30 seconds; execution requires explicit confirmation after you review the breakdown.",
+    cta: "Download",
+    ctaHref: "/download",
     imageSide: "right" as const,
-    accent: "bg-luxury-panel border-y border-luxury-border",
+    accent: "bg-luxury-dark",
+    dark: true as const,
+  },
+  {
+    id: "ledger",
+    eyebrow: "Auditable execution",
+    title: "Immutable ledger with hash chains",
+    body: "Every intent, route selection, step execution, and fee collection emits an append-only ledger event. SHA-256 hash chains link events per intent—verify integrity with GET /api/ledger/verify/:intentId.",
+    cta: "For developers",
+    ctaHref: "/download",
+    imageSide: "left" as const,
+    accent: "bg-luxury-black",
     dark: true as const,
   },
 ] as const;
 
 export const executiveSummary = {
-  title: "Why people choose Payphone",
+  title: "Payphone V6 — financial OS, not another wallet",
   paragraphs: [
-    "Payphone is a modern communications app for anyone who needs a dependable line without handing out their personal number.",
-    "Make calls, send messages, and manage contacts from one beautiful desktop app—whether you're working internationally or simply want a cleaner way to stay in touch.",
-    "Choose the storage plan that fits you, pay securely, and get back to what matters: the conversation.",
+    "Version 6 adds non-custodial cross-asset orchestration to the existing Payphone stack: masked calls, Haskell escrow, Circle mainnet USDC, BTCPay storage, bonds, and admin dispute resolution all continue to work.",
+    "New capability: express financial intent in plain terms (BTC → USDC, MATIC → USDC, USDC → XLM) and let Payphone route through the optimal path with deterministic fees and real-time execution status.",
+    "Built for desktop users funding Circle wallets without juggling DEXs, and for SDK integrators (AutoEquityGroup, marketplaces) whose end users hold any asset but need USDC settlement.",
   ],
 };
 
 export const problemMarkets = [
   {
-    title: "International traders",
-    body: "Talk to partners in any time zone without exposing your personal mobile number or paying surprise roaming fees.",
+    title: "Cross-border traders",
+    body: "Hold BTC or MATIC but need USDC in Circle to fund escrow—one intent, one confirmation, full fee disclosure.",
   },
   {
-    title: "Marketplace sellers",
-    body: "Answer buyer questions in real time and sound professional—without giving strangers your private line.",
+    title: "AutoEquityGroup & dealers",
+    body: "Vehicle transactions settle in USDC while buyers may hold heterogeneous assets. SDK intents route to escrow automatically.",
   },
   {
-    title: "Freelancers & consultants",
-    body: "One number for client work. Switch off when you're done. Your personal phone stays personal.",
+    title: "Marketplace operators",
+    body: "Sellers answer calls in minutes, settle milestones on-chain, and appeal disputes through a Fiverr-style admin process.",
   },
   {
-    title: "Remote teams",
-    body: "Give every teammate a line that works from anywhere. No desk phones. No complicated installs.",
+    title: "Developers",
+    body: "Intent → route → execute APIs with ledger verification. Non-custodial guarantees documented and enforced at the API layer.",
   },
 ] as const;
 
 export const architectureServices = [
-  { name: "Voice & messaging", body: "Reliable calls and texts from the app you already have open." },
-  { name: "Private lines", body: "A dedicated Payphone number that isn't tied to your personal SIM." },
-  { name: "Contacts & history", body: "Your address book and call log—securely stored when you activate storage." },
-  { name: "Team dashboard", body: "See who's available and how fast your team responds." },
-  { name: "Secure payments", body: "Activate storage and services with Bitcoin via BTCPay—simple and transparent." },
+  { name: "Intent engine (:4008)", body: "Haskell (or Node shim): validates asset pairs, amounts, purpose—returns CanonicalIntent." },
+  { name: "Routing engine (:4009)", body: "Rust (or Node shim): concurrent provider quotes, path scoring by urgency, 30s quote window." },
+  { name: "Execution orchestrator (:4011)", body: "Step-by-step adapter dispatch with retries, partial completion handling, Redis events." },
+  { name: "Ledger service (:4012)", body: "Append-only SHA-256 hash chain for every intent and execution step." },
+  { name: "Payment layer", body: "V5 unified Payment objects—transfers, escrow, procurement, swaps, appeals." },
+  { name: "Communications", body: "Telephony engine, masked lines, messaging, BTCPay $9.99/mo storage." },
 ] as const;
 
 export const caseStudies = [
   {
-    title: "Auto parts dealer",
-    result: "First yard to call wins the sale",
-    body: "A buyer texts ten suppliers. With Payphone, the first dealer to pick up closes in under five minutes—without sharing anyone's real number.",
+    title: "MATIC → USDC wallet fund",
+    result: "~3 second Uniswap path",
+    body: "User submits intent for 50 MATIC → USDC. Routing selects Uniswap V3 on Polygon. Fee breakdown shown. User confirms. USDC arrives in Circle wallet. Ledger records 8 events.",
   },
   {
-    title: "Auction house",
-    result: "Remote bidders get live answers",
-    body: "Floor staff answer condition questions instantly. Bidders stay engaged. Conversion goes up.",
+    title: "USDC → XLM peer payment",
+    result: "Stellar path payment",
+    body: "Send USDC from Circle through Stellar SDEX to @alice. Non-custodial: transaction envelope signed on device.",
   },
   {
-    title: "Law office intake",
-    result: "Sensitive calls handled discreetly",
-    body: "Prospective clients speak with intake staff through a Payphone line—professional, private, and immediate.",
+    title: "Escrow + dispute",
+    result: "Admin arbitration",
+    body: "Buyer funds escrow via intent purpose fund_escrow. Seller delivers. Dispute filed. Admin resolves. Outcome in MongoDB + ledger.",
   },
 ] as const;
 
 export const differentiators = [
-  { title: "Private by design", body: "Your personal number stays yours. Share a Payphone line instead.", icon: "shield" },
-  { title: "Ready in minutes", body: "Download, sign in, and start calling. No IT department required.", icon: "speed" },
-  { title: "Works everywhere", body: "Desktop app for Windows and Mac. Connect from wherever you work.", icon: "layers" },
-  { title: "Fair pricing", body: "Pay for the storage you need. No hidden fees. No annual contracts.", icon: "chart" },
+  { title: "Non-custodial", body: "No pooled user funds. No private key storage. Coordinator, not carrier.", icon: "shield" },
+  { title: "Intent-based", body: "One form: asset in, asset out, purpose, urgency. Everything else is orchestration.", icon: "speed" },
+  { title: "Transparent fees", body: "0.5% service fee + network pass-through. Shown before execution. No spread markup.", icon: "chart" },
+  { title: "Full stack", body: "Calls, escrow, procurement, bonds, swaps, and ledger in one desktop app.", icon: "layers" },
 ] as const;
 
 export const designPrinciples = [
-  { title: "Simple to start", body: "If you can use a phone, you can use Payphone." },
-  { title: "Private by default", body: "We don't sell your contacts. We don't spam your inbox." },
-  { title: "Built to last", body: "Enterprise-grade infrastructure behind a consumer-friendly experience." },
-  { title: "Pay your way", body: "Activate storage securely with Bitcoin when you're ready." },
+  { title: "Coordinator not carrier", body: "Payphone routes and executes through external providers—you hold the keys." },
+  { title: "Confirm before execute", body: "30-second quote window. userConfirmation: true required on every execution." },
+  { title: "Replayable audit trail", body: "Hash-chained ledger events reconstruct any transaction timeline." },
+  { title: "Extend V5, don't replace", body: "Telephony, escrow, Circle, BTCPay, and payment layer remain first-class." },
 ] as const;
 
 export const useCases = [
-  "International buyers and sellers who need a reliable line abroad",
-  "Marketplace operators who want faster response times",
-  "Consultants and freelancers separating work from personal calls",
-  "Medical and legal offices handling sensitive conversations",
-  "Anyone who'd rather not give strangers their mobile number",
+  "Fund Circle USDC wallet from MATIC, ETH, or BTC without leaving Payphone",
+  "Cross-chain peer payments USDC → XLM to Stellar names",
+  "AutoEquityGroup vehicle escrow with heterogeneous buyer assets",
+  "International calls with masked lines and USDC toll settlement",
+  "Procurement milestones, job bonds, and admin dispute resolution",
 ] as const;
 
 export const businessModel = {
-  headline: "Straightforward pricing",
+  headline: "Monetization without hidden spread",
   detail:
-    "Start with the app for free. Activate 1 GB of secure storage to save contacts and call history. Pay once via Bitcoin—no subscription surprises.",
+    "Orchestration service fee: 0.5% per executed cross-asset intent. Plus existing V5 revenue: 5% escrow/procurement settlement, 1% P2P, 10% toll commission, $10 appeals, $9.99/mo BTCPay storage.",
   tiers: [
-    "App download: free",
-    "1 GB secure storage: one-time activation via BTCPay",
-    "Enterprise teams: custom plans with dedicated support",
+    "Cross-asset intent execution: 0.5% service fee",
+    "Escrow & procurement settlement: 5% platform fee",
+    "P2P USDC transfer: 1% platform fee",
+    "Storage & comms: $9.99/mo via BTCPay Bitcoin",
   ],
 } as const;
 
@@ -223,12 +236,13 @@ export const downloadPlatforms = [
 ] as const;
 
 export const desktopFeatures = [
-  "RingCentral-style phone app—dial pad, calls, contacts, messages",
-  "Splash screen with classic bell branding",
-  "Stellar username—your unique identity on the network",
-  "Circle wallet created automatically when you sign up",
-  "1 GB storage unlock via BTCPayServer (contacts & call history)",
-  "Crystal-clear voice built for international communications",
+  "Swap panel: MATIC/BTC/ETH → USDC/XLM with route preview and fee breakdown",
+  "Routes panel: live execution status and ledger hash-chain viewer",
+  "Opens to Phone—dial pad, masked calls, messaging",
+  "Circle mainnet USDC wallet + Stellar identity on device",
+  "Escrow orders, procurement milestones, job bonds, admin arbitration",
+  "0.5% orchestration fee shown before every cross-asset execution",
+  "$9.99/mo storage via BTCPayServer",
 ] as const;
 
 export type DirectoryEntry = {
@@ -248,7 +262,7 @@ export const directory: DirectoryEntry[] = [
     id: "mercer-legal",
     displayName: "Silas Mercer",
     title: "Attorney at Law",
-    bio: "Available for consultations through Payphone—professional, private, and on your schedule.",
+    bio: "Consultations through Payphone—private line, USDC settlement, escrow-ready.",
     rateLabel: "$2.40 / minute",
     availability: "Available",
     rating: 4.9,
@@ -259,7 +273,7 @@ export const directory: DirectoryEntry[] = [
     id: "exchange-concierge",
     displayName: "The Exchange Desk",
     title: "Customer liaison",
-    bio: "White-glove support for Payphone business customers.",
+    bio: "White-glove support for Payphone business and SDK integrators.",
     rateLabel: "Included with plan",
     availability: "Available",
     rating: 5.0,
@@ -270,7 +284,7 @@ export const directory: DirectoryEntry[] = [
     id: "field-engineer",
     displayName: "Regional Support",
     title: "Setup specialists",
-    bio: "We help your team get calling on day one.",
+    bio: "Intent engine, Circle wallets, and telephony setup on day one.",
     rateLabel: "From $95 / visit",
     availability: "By appointment",
     rating: 4.8,
@@ -285,18 +299,18 @@ export function getDirectoryEntry(id: string): DirectoryEntry | undefined {
 
 export const heritageTimeline = [
   { year: "1882", event: "Southwestern Bell Telephone Company chartered in Missouri." },
-  { year: "1984", event: "Bell System divestiture; regional operating companies emerge." },
   { year: "2024", event: "Old West Solutions LLC launches payphone.cc." },
-  { year: "Today", event: "International tele communications for a connected world." },
+  { year: "2025", event: "V5 payment layer, escrow, Circle mainnet, Supabase auth." },
+  { year: "Today", event: "V6 non-custodial cross-asset orchestration—Intent · Route · Execute." },
 ] as const;
 
 export const footerColumns = [
   {
     title: "Product",
     links: [
+      { label: "Orchestration", href: "/#orchestration" },
       { label: "Features", href: "/#features" },
-      { label: "Privacy", href: "/#privacy" },
-      { label: "Plans", href: "/business" },
+      { label: "Fees", href: "/#fees" },
       { label: "Download", href: "/download" },
     ],
   },
@@ -304,18 +318,18 @@ export const footerColumns = [
     title: "Get started",
     links: [
       { label: "Download for Windows", href: "/download#windows" },
-      { label: "Download for macOS", href: "/download#macos" },
+      { label: "Create account", href: "/account" },
       { label: "Log in", href: "/account" },
       { label: "Business", href: "/business" },
     ],
   },
   {
-    title: "Support",
+    title: "Developers",
     links: [
-      { label: "Help Center", href: "/support" },
-      { label: "Contact us", href: "/support#contact" },
-      { label: "Privacy", href: "/support#privacy" },
-      { label: "Terms", href: "/support#terms" },
+      { label: "Intent API", href: "/download" },
+      { label: "Routing API", href: "/download" },
+      { label: "Ledger verify", href: "/download" },
+      { label: "Support", href: "/support" },
     ],
   },
   {
@@ -323,20 +337,21 @@ export const footerColumns = [
     links: [
       { label: "About", href: "/heritage" },
       { label: "Old West Solutions", href: "/heritage" },
-      { label: "Regulatory", href: "/support#regulatory" },
+      { label: "Privacy", href: "/support#privacy" },
+      { label: "Terms", href: "/support#terms" },
     ],
   },
 ] as const;
 
 export const professionalComms = {
-  eyebrow: "Simple pricing",
-  title: "A phone line that works for you",
+  eyebrow: "V6 orchestration",
+  title: "Cross-asset flows without custody risk",
   lead: executiveSummary.paragraphs[0],
   body: executiveSummary.paragraphs[1],
   features: differentiators.map((d) => d.title),
   idealFor: useCases.slice(0, 4),
-  cta: "See features",
-  ctaHref: "/#features",
+  cta: "See orchestration",
+  ctaHref: "/#orchestration",
 } as const;
 
 export const architectureTiers = architectureServices.map((s, i) => ({
@@ -349,14 +364,14 @@ export const whyAnonymity = problemMarkets.map((m) => m.title);
 
 export const quickActions = [
   { label: "Download", href: "/download", icon: "download" },
-  { label: "Features", href: "/#features", icon: "signal" },
-  { label: "Privacy", href: "/#privacy", icon: "shield" },
-  { label: "Business", href: "/business", icon: "building" },
+  { label: "Orchestration", href: "/#orchestration", icon: "signal" },
+  { label: "Fees", href: "/#fees", icon: "shield" },
+  { label: "Account", href: "/account", icon: "building" },
   { label: "Support", href: "/support", icon: "alert" },
 ] as const;
 
 export const services = differentiators.map((d) => ({
   title: d.title,
   body: d.body,
-  href: "/#features",
+  href: "/#orchestration",
 }));

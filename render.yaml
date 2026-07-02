@@ -1,0 +1,53 @@
+# Render.com — deploy Payphone API gateway
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: payphone-gateway
+    runtime: docker
+    dockerfilePath: ./apps/gateway/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: MONGODB_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: CIRCLE_API_KEY
+        sync: false
+      - key: CIRCLE_ENTITY_SECRET
+        sync: false
+      - key: CIRCLE_WALLET_SET_ID
+        sync: false
+      - key: CIRCLE_BLOCKCHAIN
+        value: MATIC
+      - key: CIRCLE_USDC_TOKEN_ADDRESS
+        sync: false
+      - key: PAYPHONE_ESCROW_WALLET_ADDRESS
+        sync: false
+      - key: PAYPHONE_ESCROW_WALLET_ID
+        sync: false
+      - key: PAYPHONE_PLATFORM_FEE_WALLET_ADDRESS
+        sync: false
+      - key: PAYPHONE_PLATFORM_FEE_WALLET_ID
+        sync: false
+      - key: PAYPHONE_BTCPAY_URL
+        sync: false
+      - key: PAYPHONE_BTCPAY_API_KEY
+        sync: false
+      - key: PAYPHONE_BTCPAY_STORE_ID
+        sync: false
+      - key: PAYPHONE_BTCPAY_WEBHOOK_SECRET
+        sync: false
+      - key: PAYPHONE_DEMO_MODE
+        value: "false"

@@ -1,9 +1,13 @@
+mod gateway_auth;
+mod intent;
 mod account;
 mod btcpay;
 mod circle_client;
 mod config;
 mod escrow;
 mod models;
+mod platform_fee;
+mod procurement;
 mod stellar_client;
 mod telephony;
 mod wallet;
@@ -15,7 +19,8 @@ use config::PayphoneConfig;
 use escrow::EscrowEngineClient;
 use models::{
     BillingStatus, BtcPayInvoice, CallRecord, Contact, CreditPurchaseResult, DashboardStats,
-    EscrowContract, MarketingEscrow, PlaceCallResult, PublicUser, RegisterResult,
+    EscrowContract, MarketingEscrow, PlaceCallResult, PlatformRevenue, PlatformWallet,
+    ProgrammableCommitment, PublicUser, RegisterResult, SendUsdcResult,
     SupplyChainEscrow, TransitionRequest, UsernameRules,
 };
 use stellar_client::{format_dial_address, sign_sms_payload};
@@ -101,6 +106,9 @@ async fn build_user(
         storage_invoice_id: None,
         storage_credits_gib: if is_demo_mode() { 1.0 } else { 0.0 },
         comms_credits: if is_demo_mode() { 1000.0 } else { 0.0 },
+        phone: String::new(),
+        access_token: None,
+        role: "user".into(),
     })
 }
 
@@ -139,6 +147,9 @@ async fn build_user_loose(
         storage_invoice_id: None,
         storage_credits_gib: if is_demo_mode() { 1.0 } else { 0.0 },
         comms_credits: if is_demo_mode() { 1000.0 } else { 0.0 },
+        phone: String::new(),
+        access_token: None,
+        role: "user".into(),
     })
 }
 
@@ -196,11 +207,22 @@ fn normalize_number(number: &str) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn get_billing_status(state: State<AppState>) -> BillingStatus {
-    BillingStatus {
-        btcpay_configured: state.config.btcpay_configured(),
-        btcpay_url: state.config.btcpay_url.clone(),
+async fn get_billing_status(state: State<'_, AppState>) -> Result<BillingStatus, String> {
+    let url = format!(
+        "{}/health",
+        state.config.api_gateway_url.trim_end_matches('/')
+    );
+    let mut gateway_btcpay = false;
+    if let Ok(resp) = reqwest::Client::new().get(&url).send().await {
+        if let Ok(j) = resp.json::<serde_json::Value>().await {
+            gateway_btcpay = j["btcpay_configured"].as_bool().unwrap_or(false);
+        }
     }
+
+    Ok(BillingStatus {
+        btcpay_configured: gateway_btcpay || state.config.btcpay_configured(),
+        btcpay_url: state.config.btcpay_url.clone(),
+    })
 }
 
 #[tauri::command]
@@ -216,12 +238,24 @@ async fn register_account(
     username: String,
     email: String,
     password: String,
+    phone: String,
 ) -> Result<RegisterResult, String> {
-    if state.store.lock().map_err(|e| e.to_string())?.users.contains_key(&username) {
-        return Err("That username is already taken.".into());
-    }
+    stellar_client::validate_stellar_username(&username)?;
 
-    let user = build_user(&state, username.clone(), email, password).await?;
+    let auth = gateway_auth::gateway_register(
+        &state.config.api_gateway_url,
+        &email,
+        &password,
+        &phone,
+        &username,
+    )
+    .await?;
+
+    let stellar = stellar_client::register_username(&username)?;
+    let mut user = auth.user;
+    user.stellar_public_key = stellar.public_key;
+    user.stellar_secret = stellar.secret_key;
+    user.phone = phone;
 
     with_store(&state, |store| {
         store.users.insert(username.clone(), user.clone());
@@ -242,52 +276,36 @@ async fn register_account(
 async fn login_account(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
-    username: String,
+    email: String,
     password: String,
 ) -> Result<PublicUser, String> {
-    let exists = state.store.lock().map_err(|e| e.to_string())?.users.contains_key(&username);
-
-    if !exists {
-        let user = build_user_loose(&state, username.clone(), password).await?;
-        return with_store(&state, |store| {
-            store.users.insert(username.clone(), user.clone());
-            store.current_user = Some(user.clone());
-            store.save_to_disk(&app)?;
-            Ok(PublicUser::from(user))
-        });
-    }
+    let auth = gateway_auth::gateway_login(&state.config.api_gateway_url, &email, &password).await?;
+    let user = auth.user;
 
     with_store(&state, |store| {
-        let user = store
-            .users
-            .get_mut(&username)
-            .ok_or_else(|| "Account not found.".to_string())?;
-        migrate_user_fields(user);
-        if !is_demo_mode() && user.password_hash != account::hash_password(&password) {
-            return Err("Invalid password".into());
-        }
-        let snapshot = user.clone();
-        store.current_user = Some(snapshot.clone());
+        store.users.insert(user.username.clone(), user.clone());
+        store.current_user = Some(user.clone());
         store.save_to_disk(&app)?;
-        Ok(PublicUser::from(snapshot))
+        Ok(PublicUser::from(user))
     })
 }
 
 #[tauri::command]
 async fn create_storage_invoice(state: State<'_, AppState>) -> Result<BtcPayInvoice, String> {
-    let username = {
-        let store = state.store.lock().map_err(|e| e.to_string())?;
-        store
-            .current_user
-            .as_ref()
-            .map(|u| u.username.clone())
-            .ok_or_else(|| "Not signed in".to_string())?
-    };
-
-    let client = state.btcpay_client()?;
-    let invoice = client.create_storage_invoice(&username).await?;
-
-    Ok(invoice)
+    let body = gateway_post_json(&state, "/api/billing/storage/invoice", serde_json::json!({}))
+        .await?;
+    let inv = &body["data"];
+    Ok(BtcPayInvoice {
+        id: inv["id"].as_str().unwrap_or_default().into(),
+        checkout_link: inv["checkout_link"].as_str().unwrap_or_default().into(),
+        amount: inv["amount"].as_str().unwrap_or("9.99").into(),
+        currency: inv["currency"].as_str().unwrap_or("USD").into(),
+        status: inv["status"].as_str().unwrap_or("New").into(),
+        description: inv["description"]
+            .as_str()
+            .unwrap_or("1 GB secure storage — contacts & call history")
+            .into(),
+    })
 }
 
 #[tauri::command]
@@ -296,25 +314,27 @@ async fn verify_and_activate_storage(
     state: State<'_, AppState>,
     invoice_id: String,
 ) -> Result<PublicUser, String> {
-    let client = state.btcpay_client()?;
-    let paid = client.is_invoice_paid(&invoice_id).await?;
-    if !paid {
-        return Err(
-            "Payment not detected yet. Complete checkout in BTCPay, then try again.".into(),
-        );
-    }
+    let body = gateway_post_json(
+        &state,
+        "/api/billing/storage/sync",
+        serde_json::json!({ "invoiceId": invoice_id }),
+    )
+    .await?;
 
+    let user_doc = &body["data"]["user"];
     with_store(&state, |store| {
-        let user = store
+        let current = store
             .current_user
             .as_mut()
             .ok_or_else(|| "Not signed in".to_string())?;
-        user.storage_paid = true;
-        user.storage_invoice_id = Some(invoice_id);
-        user.storage_credits_gib = user.storage_credits_gib.max(1.0);
-        user.comms_credits = user.comms_credits.max(1000.0);
-        store.users.insert(user.username.clone(), user.clone());
-        let updated = PublicUser::from(user.clone());
+        current.storage_paid = user_doc["storage_paid"].as_bool().unwrap_or(true);
+        current.storage_invoice_id = user_doc["storage_invoice_id"]
+            .as_str()
+            .map(String::from);
+        current.storage_credits_gib = user_doc["storage_credits_gib"].as_f64().unwrap_or(1.0);
+        current.comms_credits = user_doc["comms_credits"].as_f64().unwrap_or(1000.0);
+        store.users.insert(current.username.clone(), current.clone());
+        let updated = PublicUser::from(current.clone());
         store.save_to_disk(&app)?;
         Ok(updated)
     })
@@ -1218,6 +1238,35 @@ async fn transition_escrow(
     };
     updated.circle_fund_tx_id = circle_fund_tx_id;
 
+    if updated.status == "Settled" && current.status != "Settled" {
+        let seller_address = with_store(&state, |store| {
+            Ok(store
+                .users
+                .get(&updated.seller_id)
+                .map(|u| u.circle_wallet_address.clone())
+                .unwrap_or_default())
+        })?;
+        let buyer_address = with_store(&state, |store| {
+            Ok(store
+                .current_user
+                .as_ref()
+                .map(|u| u.circle_wallet_address.clone())
+                .unwrap_or_default())
+        })?;
+        let charge = updated.amount;
+        let _settlement = circle_client::settle_escrow(
+            &state.config.api_gateway_url,
+            &contract_id,
+            updated.amount,
+            charge,
+            0.0,
+            &seller_address,
+            &buyer_address,
+            &requester_id,
+        )
+        .await?;
+    }
+
     with_store(&state, |store| {
         let user = store
             .current_user
@@ -1419,6 +1468,346 @@ async fn get_calendar_events(
     }
 }
 
+#[tauri::command]
+async fn send_usdc(
+    state: State<'_, AppState>,
+    to_username: String,
+    amount: f64,
+) -> Result<SendUsdcResult, String> {
+    if amount <= 0.0 {
+        return Err("Amount must be positive".into());
+    }
+    let (wallet_id, from_party, recipient_address) = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        let to = to_username.trim().replace('@', "");
+        let recipient = store
+            .users
+            .get(&to)
+            .map(|u| u.circle_wallet_address.clone())
+            .filter(|a| !a.is_empty())
+            .ok_or_else(|| format!("User @{to} not found — they must register on Payphone first"))?;
+        (user.circle_wallet_id.clone(), user.username.clone(), recipient)
+    };
+
+    let (_, balance_str) =
+        circle_client::get_wallet_balances(&state.config.api_gateway_url, &wallet_id).await?;
+    let balance: f64 = balance_str.parse().unwrap_or(0.0);
+    if balance < amount {
+        return Err(format!("Insufficient balance: {balance_str} USDC"));
+    }
+
+    circle_client::send_usdc_transfer(
+        &state.config.api_gateway_url,
+        &wallet_id,
+        &recipient_address,
+        amount,
+        &from_party,
+    )
+    .await
+}
+
+#[tauri::command]
+async fn get_platform_revenue(state: State<'_, AppState>) -> Result<PlatformRevenue, String> {
+    let url = format!(
+        "{}/api/platform/revenue",
+        state.config.api_gateway_url.trim_end_matches('/')
+    );
+    let resp = reqwest::Client::new()
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Gateway unreachable: {e}"))?;
+    #[derive(serde::Deserialize)]
+    struct Wrapper {
+        data: PlatformRevenue,
+    }
+    let parsed: Wrapper = resp.json().await.map_err(|e| e.to_string())?;
+    Ok(parsed.data)
+}
+
+#[tauri::command]
+async fn get_platform_wallet(state: State<'_, AppState>) -> Result<PlatformWallet, String> {
+    let url = format!(
+        "{}/api/platform/wallet",
+        state.config.api_gateway_url.trim_end_matches('/')
+    );
+    let resp = reqwest::Client::new()
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Gateway unreachable: {e}"))?;
+    #[derive(serde::Deserialize)]
+    struct Wrapper {
+        data: PlatformWallet,
+    }
+    let parsed: Wrapper = resp.json().await.map_err(|e| e.to_string())?;
+    Ok(parsed.data)
+}
+
+#[tauri::command]
+async fn list_procurement_commitments(
+    state: State<'_, AppState>,
+) -> Result<Vec<ProgrammableCommitment>, String> {
+    let username = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        store
+            .current_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .ok_or_else(|| "Not signed in".to_string())?
+    };
+    let client = procurement::ProcurementClient::new(state.config.api_gateway_url.clone());
+    client.list(&username).await
+}
+
+#[tauri::command]
+async fn create_procurement_commitment(
+    state: State<'_, AppState>,
+    supplier_id: String,
+    total_amount: f64,
+    sku: String,
+    quantity: i32,
+) -> Result<ProgrammableCommitment, String> {
+    let (buyer_id, wallet_id) = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        (user.username.clone(), user.circle_wallet_id.clone())
+    };
+    let (_, balance_str) =
+        circle_client::get_wallet_balances(&state.config.api_gateway_url, &wallet_id).await?;
+    let buyer_balance: f64 = balance_str.parse().unwrap_or(0.0);
+    let line_items = serde_json::json!([{ "sku": sku, "quantity": quantity }]);
+    let milestones = serde_json::json!([
+        { "name": "Production", "releasePct": 20 },
+        { "name": "Shipped", "releasePct": 30 },
+        { "name": "Inspection", "releasePct": 30 },
+        { "name": "Acceptance", "releasePct": 20 }
+    ]);
+    let client = procurement::ProcurementClient::new(state.config.api_gateway_url.clone());
+    client
+        .create(
+            &buyer_id,
+            &supplier_id,
+            total_amount,
+            buyer_balance,
+            line_items,
+            milestones,
+        )
+        .await
+}
+
+#[tauri::command]
+async fn fund_procurement_commitment(
+    state: State<'_, AppState>,
+    commitment_id: String,
+) -> Result<ProgrammableCommitment, String> {
+    let (requester_id, wallet_id) = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        let user = store
+            .current_user
+            .as_ref()
+            .ok_or_else(|| "Not signed in".to_string())?;
+        (user.username.clone(), user.circle_wallet_id.clone())
+    };
+    let client = procurement::ProcurementClient::new(state.config.api_gateway_url.clone());
+    let list = client.list(&requester_id).await?;
+    let c = list
+        .iter()
+        .find(|x| x.commitment_id == commitment_id)
+        .ok_or_else(|| "Commitment not found".to_string())?;
+    client
+        .fund(&commitment_id, &wallet_id, c.total_amount, &requester_id)
+        .await
+}
+
+#[tauri::command]
+async fn transition_procurement_commitment(
+    state: State<'_, AppState>,
+    commitment_id: String,
+    request_type: String,
+    milestone_id: Option<String>,
+) -> Result<ProgrammableCommitment, String> {
+    let requester_id = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        store
+            .current_user
+            .as_ref()
+            .map(|u| u.username.clone())
+            .ok_or_else(|| "Not signed in".to_string())?
+    };
+    let client = procurement::ProcurementClient::new(state.config.api_gateway_url.clone());
+
+    if request_type == "release_milestone" {
+        let mid = milestone_id.ok_or_else(|| "milestoneId required".to_string())?;
+        let list = client.list(&requester_id).await?;
+        let c = list
+            .iter()
+            .find(|x| x.commitment_id == commitment_id)
+            .ok_or_else(|| "Commitment not found".to_string())?;
+        let recipient = with_store(&state, |store| {
+            Ok(store
+                .users
+                .get(&c.supplier_id)
+                .map(|u| u.circle_wallet_address.clone())
+                .unwrap_or_default())
+        })?;
+        return client
+            .release_milestone(&commitment_id, &mid, &recipient, &requester_id)
+            .await;
+    }
+
+    client
+        .transition(
+            &commitment_id,
+            &request_type,
+            &requester_id,
+            milestone_id.as_deref(),
+        )
+        .await
+}
+
+fn current_access_token(state: &AppState) -> Result<String, String> {
+    let store = state.store.lock().map_err(|e| e.to_string())?;
+    let user = store
+        .current_user
+        .as_ref()
+        .ok_or_else(|| "Not signed in".to_string())?;
+    user.access_token
+        .clone()
+        .ok_or_else(|| "Session expired — sign in again".into())
+}
+
+async fn gateway_get_json(state: &AppState, path: &str) -> Result<serde_json::Value, String> {
+    let token = current_access_token(state)?;
+    let url = format!(
+        "{}{}",
+        state.config.api_gateway_url.trim_end_matches('/'),
+        path
+    );
+    let resp = reqwest::Client::new()
+        .get(&url)
+        .header("Authorization", format!("Bearer {token}"))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = resp.status();
+    let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    if !status.is_success() {
+        return Err(body["error"].as_str().unwrap_or("Gateway error").into());
+    }
+    Ok(body)
+}
+
+async fn gateway_post_json(
+    state: &AppState,
+    path: &str,
+    payload: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    let token = current_access_token(state)?;
+    let url = format!(
+        "{}{}",
+        state.config.api_gateway_url.trim_end_matches('/'),
+        path
+    );
+    let resp = reqwest::Client::new()
+        .post(&url)
+        .header("Authorization", format!("Bearer {token}"))
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = resp.status();
+    let body: serde_json::Value = resp.json().await.map_err(|e| e.to_string())?;
+    if !status.is_success() {
+        return Err(body["error"].as_str().unwrap_or("Gateway error").into());
+    }
+    Ok(body)
+}
+
+#[tauri::command]
+async fn list_bonds(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let body = gateway_get_json(&state, "/api/bonds").await?;
+    Ok(body["data"].clone())
+}
+
+#[tauri::command]
+async fn create_bond(
+    state: State<'_, AppState>,
+    escrow_contract_id: String,
+    counterparty_id: String,
+    amount: f64,
+) -> Result<serde_json::Value, String> {
+    let body = gateway_post_json(
+        &state,
+        "/api/bonds",
+        serde_json::json!({
+            "escrowContractId": escrow_contract_id,
+            "counterpartyId": counterparty_id,
+            "amount": amount,
+        }),
+    )
+    .await?;
+    Ok(body["data"].clone())
+}
+
+#[tauri::command]
+async fn list_admin_disputes(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let role = {
+        let store = state.store.lock().map_err(|e| e.to_string())?;
+        store
+            .current_user
+            .as_ref()
+            .map(|u| u.role.clone())
+            .unwrap_or_default()
+    };
+    if role != "admin" {
+        return Err("Admin access required".into());
+    }
+    let body = gateway_get_json(&state, "/api/disputes").await?;
+    Ok(body["data"].clone())
+}
+
+#[tauri::command]
+async fn resolve_dispute_admin(
+    state: State<'_, AppState>,
+    dispute_id: String,
+    resolution: String,
+    winner_id: String,
+) -> Result<serde_json::Value, String> {
+    let body = gateway_post_json(
+        &state,
+        &format!("/api/admin/disputes/{dispute_id}/resolve"),
+        serde_json::json!({
+            "resolution": resolution,
+            "winnerId": winner_id,
+        }),
+    )
+    .await?;
+    Ok(body["data"].clone())
+}
+
+#[tauri::command]
+async fn create_dispute(
+    state: State<'_, AppState>,
+    contract_id: String,
+    reason: String,
+) -> Result<serde_json::Value, String> {
+    let body = gateway_post_json(
+        &state,
+        "/api/disputes",
+        serde_json::json!({ "contractId": contract_id, "reason": reason }),
+    )
+    .await?;
+    Ok(body["data"].clone())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -1471,7 +1860,25 @@ pub fn run() {
             list_marketing_escrows,
             list_supply_escrows,
             transition_marketing_escrow,
-            transition_supply_escrow
+            transition_supply_escrow,
+            send_usdc,
+            get_platform_revenue,
+            get_platform_wallet,
+            list_procurement_commitments,
+            create_procurement_commitment,
+            fund_procurement_commitment,
+            transition_procurement_commitment,
+            list_bonds,
+            create_bond,
+            list_admin_disputes,
+            resolve_dispute_admin,
+            create_dispute,
+            intent::submit_intent,
+            intent::get_route,
+            intent::confirm_execution,
+            intent::get_execution_status,
+            intent::get_supported_asset_pairs,
+            intent::get_ledger_chain
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

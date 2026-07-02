@@ -7,6 +7,8 @@ dist
 .env.local
 .env.*
 recovery/
+recovery_file_*.dat
+data/platform-fees.json
 !.env.example
 apps/gateway/.env
 coverage

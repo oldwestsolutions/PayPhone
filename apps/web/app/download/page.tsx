@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bell } from "@/components/Bell";
+import { PhoneIcon } from "@/components/PhoneIcon";
 import { desktopFeatures, downloadPlatforms, site } from "@/lib/content";
 
 export const metadata: Metadata = {
@@ -46,12 +46,12 @@ export default function DownloadPage() {
     <div className="bg-luxury-black">
       <section className="relative py-16 md:py-24 bg-hero-luxury border-b border-luxury-border">
         <div className="mx-auto max-w-4xl px-4 text-center space-y-6">
-          <Bell size={48} className="mx-auto" />
+          <PhoneIcon size={48} className="mx-auto" />
           <p className="section-eyebrow">Enterprise v{site.enterpriseVersion}</p>
           <h1 className="heading-section">Download Payphone</h1>
           <p className="text-lg text-luxury-gray max-w-2xl mx-auto">
-            Tauri desktop client with Haskell contract engine, BTCPayServer billing, masked
-            sessions, and dual-rail settlement.
+            Desktop app with RingCentral-style calling, Circle mainnet USDC, payment-layer escrow &amp; procurement,
+            job bonds, and Fiverr-style dispute resolution.
           </p>
         </div>
       </section>

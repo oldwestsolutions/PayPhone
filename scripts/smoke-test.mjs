@@ -6,6 +6,9 @@
 const TELEPHONY = process.env.PAYPHONE_TELEPHONY_ENGINE_URL || "http://localhost:4010";
 const ESCROW = process.env.PAYPHONE_ESCROW_ENGINE_URL || "http://localhost:4004";
 const GATEWAY = process.env.PAYPHONE_API_GATEWAY_URL || "http://localhost:4000";
+const INTENT = process.env.INTENT_ENGINE_URL || "http://localhost:4008";
+const ROUTING = process.env.ROUTING_ENGINE_URL || "http://localhost:4009";
+const LEDGER = process.env.LEDGER_SERVICE_URL || "http://localhost:4012";
 
 let passed = 0;
 let failed = 0;
@@ -149,6 +152,109 @@ async function main() {
       body: JSON.stringify({ storageGibMonths: 1, transferMib: 10 }),
     });
     if (!r.data?.totalUsdc) throw new Error("no quote");
+  });
+
+  await check("Procurement commitment + fund + milestone", async () => {
+    const created = await json(`${GATEWAY}/api/procurement/commitments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        buyerId: "alice.42line",
+        supplierId: "bob.99test",
+        totalAmount: 1000,
+        buyerBalance: 5000,
+        lineItems: [{ sku: "WIDGET-1", quantity: 10 }],
+      }),
+    });
+    const id = created.data?.commitment_id;
+    if (!id) throw new Error("no commitment");
+    const funded = await json(`${GATEWAY}/api/procurement/commitments/${id}/fund`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        walletId: "circle-demo-alice",
+        requesterId: "alice.42line",
+      }),
+    });
+    if (funded.data?.commitment?.status !== "funded") throw new Error("fund failed");
+    const accepted = await json(`${GATEWAY}/api/procurement/commitments/${id}/transition`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ requestType: "accept", requesterId: "bob.99test" }),
+    });
+    if (accepted.data?.status !== "active") throw new Error("accept failed");
+  });
+
+  await check("Escrow settlement with platform fee", async () => {
+    const r = await json(`${GATEWAY}/api/escrow/settle`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contractId: "esc-smoke-1",
+        escrowAmount: 10,
+        chargeAmount: 10,
+        sellerWalletAddress: "0xseller",
+        buyerWalletAddress: "0xbuyer",
+        fromParty: "alice.42line",
+      }),
+    });
+    if (!r.data?.platform_fee) throw new Error("no platform fee");
+  });
+
+  await check("P2P transfer with fee", async () => {
+    const r = await json(`${GATEWAY}/api/transfer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        walletId: "circle-demo-alice",
+        destinationAddress: "0xrecipient",
+        amount: "100",
+        fromParty: "alice.42line",
+      }),
+    });
+    if (r.data?.platform_fee == null) throw new Error("no fee");
+  });
+
+  await check("Intent engine health", async () => {
+    const h = await json(`${INTENT}/health`);
+    if (!h.ok) throw new Error("intent not ok");
+  });
+
+  await check("Routing engine health", async () => {
+    const h = await json(`${ROUTING}/health`);
+    if (!h.ok) throw new Error("routing not ok");
+  });
+
+  await check("Ledger service health", async () => {
+    const h = await json(`${LEDGER}/health`);
+    if (!h.ok) throw new Error("ledger not ok");
+  });
+
+  await check("V6 intent MATIC→USDC validate", async () => {
+    const r = await json(`${INTENT}/v1/intent/submit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        rawAssetIn: "MATIC",
+        rawAmountIn: "50",
+        rawAssetOut: "USDC",
+        rawPurpose: "fund_wallet",
+        rawUrgency: "Balanced",
+        rawSubmittedBy: "smoke.99test",
+      }),
+    });
+    if (!r.ok || !r.data?.intentId) throw new Error("intent submit failed");
+    const route = await json(`${ROUTING}/v1/routes/evaluate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ intentId: r.data.intentId }),
+    });
+    if (!route.ok || !route.data?.route_plan_id) throw new Error("route evaluate failed");
+  });
+
+  await check("Platform revenue endpoint", async () => {
+    const r = await json(`${GATEWAY}/api/platform/revenue`);
+    if (r.data?.all_time_total_usdc == null) throw new Error("no revenue data");
   });
 
   console.log(`\n${passed} passed, ${failed} failed`);

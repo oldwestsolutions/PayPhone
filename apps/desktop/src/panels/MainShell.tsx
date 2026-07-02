@@ -1,8 +1,14 @@
-import type { AppSection, UserAccount } from "../types";
-import { Bell } from "../components/Bell";
+import type { UserAccount, AppSection } from "../types";
+import { PhoneIcon } from "../components/PhoneIcon";
+import { HomePanel } from "./HomePanel";
 import { CommunicationsPanel } from "./CommunicationsPanel";
 import { WalletPanel } from "./WalletPanel";
 import { EscrowPanel } from "./EscrowPanel";
+import { ProcurementPanel } from "./ProcurementPanel";
+import { BusinessPanel } from "./BusinessPanel";
+import { AdminPanel, BondPanel } from "./AdminBondPanels";
+import { SwapPanel } from "./SwapPanel";
+import { RoutingPanel } from "./RoutingPanel";
 import { MessagesPanel } from "./MessagesPanel";
 import { CalendarPanel } from "./CalendarPanel";
 import { SettingsPanel } from "./SettingsPanel";
@@ -10,11 +16,17 @@ import { PayPanel } from "./PayPanel";
 
 const NAV: { id: AppSection; label: string; icon: string }[] = [
   { id: "communications", label: "Phone", icon: "◎" },
-  { id: "messages", label: "Messages", icon: "✉" },
-  { id: "calendar", label: "Calendar", icon: "▦" },
-  { id: "wallet", label: "Wallet", icon: "◇" },
+  { id: "messages", label: "Messages", icon: "💬" },
+  { id: "wallet", label: "Wallet", icon: "$" },
+  { id: "swap", label: "Swap", icon: "⇄" },
+  { id: "routes", label: "Routes", icon: "↯" },
+  { id: "escrow", label: "Orders", icon: "📦" },
+  { id: "procurement", label: "Procurement", icon: "🚚" },
+  { id: "bonds", label: "Bonds", icon: "🔒" },
   { id: "pay", label: "Pay", icon: "◈" },
-  { id: "escrow", label: "Escrow", icon: "⛓" },
+  { id: "home", label: "Home", icon: "⌂" },
+  { id: "business", label: "Revenue", icon: "📈" },
+  { id: "calendar", label: "Calendar", icon: "▦" },
   { id: "settings", label: "Settings", icon: "⚙" },
 ];
 
@@ -37,10 +49,10 @@ export function MainShell({
     <div className="shell rc-shell">
       <aside className="shell-sidebar">
         <div className="shell-brand">
-          <Bell className="brand-bell" />
+          <PhoneIcon size={28} className="brand-bell" />
           <div>
             <span className="brand-title">Payphone</span>
-            <span className="brand-sub">Communications</span>
+            <span className="brand-sub">Intent · Route · Execute</span>
           </div>
         </div>
         <nav className="shell-nav">
@@ -56,6 +68,16 @@ export function MainShell({
               {item.id === "pay" && lowCredits && <span className="nav-warn">!</span>}
             </button>
           ))}
+          {user.role === "admin" && (
+            <button
+              type="button"
+              className={section === "admin" ? "active" : ""}
+              onClick={() => onSection("admin")}
+            >
+              <span className="nav-icon">⚖</span>
+              Admin
+            </button>
+          )}
         </nav>
         <div className="shell-user">
           <p>@{user.username}</p>
@@ -69,7 +91,7 @@ export function MainShell({
             <p>
               Storage or comms credits are running low.{" "}
               <button type="button" className="btn-ghost" onClick={() => onSection("pay")}>
-                Open Pay screen
+                Open Pay
               </button>
             </p>
           </div>
@@ -78,8 +100,15 @@ export function MainShell({
         {section === "messages" && <MessagesPanel user={user} />}
         {section === "calendar" && <CalendarPanel />}
         {section === "wallet" && <WalletPanel />}
+        {section === "swap" && <SwapPanel user={user} />}
+        {section === "routes" && <RoutingPanel />}
         {section === "pay" && <PayPanel user={user} onCreditsUpdated={onUserUpdate} />}
         {section === "escrow" && <EscrowPanel />}
+        {section === "procurement" && <ProcurementPanel />}
+        {section === "bonds" && <BondPanel user={user} />}
+        {section === "business" && <BusinessPanel />}
+        {user.role === "admin" && section === "admin" && <AdminPanel />}
+        {section === "home" && <HomePanel user={user} onNavigate={(s) => onSection(s as AppSection)} />}
         {section === "settings" && (
           <SettingsPanel user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} />
         )}

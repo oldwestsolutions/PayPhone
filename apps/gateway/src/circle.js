@@ -15,6 +15,9 @@ export function circleConfig() {
       process.env.CIRCLE_USDC_TOKEN_ADDRESS?.trim() ||
       "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
     escrowAddress: process.env.PAYPHONE_ESCROW_WALLET_ADDRESS?.trim() || "",
+    escrowWalletId: process.env.PAYPHONE_ESCROW_WALLET_ID?.trim() || "",
+    platformFeeAddress: process.env.PAYPHONE_PLATFORM_FEE_WALLET_ADDRESS?.trim() || "",
+    platformFeeWalletId: process.env.PAYPHONE_PLATFORM_FEE_WALLET_ID?.trim() || "",
   };
 }
 

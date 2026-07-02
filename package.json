@@ -5,7 +5,8 @@
     "apps/web",
     "apps/desktop",
     "apps/gateway",
-    "apps/mask-proxy"
+    "apps/mask-proxy",
+    "packages/payment-layer"
   ],
   "scripts": {
     "dev": "npm run dev -w @payphone/web",
@@ -19,6 +20,10 @@
     "telephony:dev": "node services/telephony-shim/server.mjs",
     "telephony:haskell": "cd services/telephony-engine && cabal run telephony-engine",
     "escrow:dev": "node services/escrow-shim/server.mjs",
+    "intent:dev": "node services/intent-shim/server.mjs",
+    "routing:dev": "node services/routing-engine/server.mjs",
+    "orchestrator:dev": "node services/execution-orchestrator/server.mjs",
+    "ledger:dev": "node services/ledger-service/server.mjs",
     "escrow:haskell": "cd services/escrow-engine && cabal run escrow-engine",
     "desktop:dev": "npm run tauri dev -w @payphone/desktop",
     "desktop:build": "npm run tauri build -w @payphone/desktop",

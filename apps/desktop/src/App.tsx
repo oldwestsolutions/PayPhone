@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { Bell } from "./components/Bell";
+import { PhoneIcon } from "./components/PhoneIcon";
 import { MainShell } from "./panels/MainShell";
 import type { AppSection, BillingStatus, Invoice, UserAccount } from "./types";
 import "./App.css";
@@ -9,23 +9,24 @@ type Phase = "splash" | "auth" | "paywall" | "app";
 
 function SplashScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 2400);
+    const t = setTimeout(onDone, 1800);
     return () => clearTimeout(t);
   }, [onDone]);
 
   return (
     <div className="splash">
-      <Bell animate className="splash-bell" />
+      <PhoneIcon size={56} className="splash-bell" />
       <h1>Payphone</h1>
-      <p>International Tele Communications</p>
+      <p>Intent · Route · Execute</p>
     </div>
   );
 }
 
 function AuthScreen({ onSuccess }: { onSuccess: (u: UserAccount) => void }) {
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<"login" | "register">("register");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,27 +37,12 @@ function AuthScreen({ onSuccess }: { onSuccess: (u: UserAccount) => void }) {
     setError("");
     try {
       if (mode === "register") {
-        const r = await invoke<{
-          username: string;
-          stellar_public_key: string;
-          circle_wallet_address: string;
-          masked_number: string;
-          storage_paid: boolean;
-        }>("register_account", { username, email, password });
-        onSuccess({
-          username: r.username,
-          email,
-          stellar_public_key: r.stellar_public_key,
-          circle_wallet_address: r.circle_wallet_address,
-          masked_number: r.masked_number,
-          storage_paid: r.storage_paid,
-          personal_phone: "",
-          account_type: "consumer",
-          storage_credits_gib: 0,
-          comms_credits: 0,
-        });
+        await invoke("register_account", { username, email, password, phone });
+        onSuccess(
+          await invoke<UserAccount>("login_account", { email, password })
+        );
       } else {
-        onSuccess(await invoke<UserAccount>("login_account", { username, password }));
+        onSuccess(await invoke<UserAccount>("login_account", { email, password }));
       }
     } catch (err) {
       setError(String(err));
@@ -68,11 +54,10 @@ function AuthScreen({ onSuccess }: { onSuccess: (u: UserAccount) => void }) {
   return (
     <div className="auth-screen">
       <form className="auth-card" onSubmit={handleSubmit}>
-        <Bell className="auth-bell" />
+        <PhoneIcon size={40} className="auth-bell" />
         <h1>{mode === "login" ? "Sign in" : "Create account"}</h1>
         <p className="hint">
-          Demo: sign in with any username and password to explore the UI. Masked calls require a
-          Stellar username (7–22 chars, must include a number).
+          Register at payphone.cc with email and phone. Only verified accounts can place calls and move USDC.
         </p>
         <div className="auth-tabs">
           <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>
@@ -82,19 +67,25 @@ function AuthScreen({ onSuccess }: { onSuccess: (u: UserAccount) => void }) {
             Register
           </button>
         </div>
-        <label>
-          Username
-          <input value={username} onChange={(e) => setUsername(e.target.value)} required />
-        </label>
         {mode === "register" && (
-          <label>
-            Email
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          </label>
+          <>
+            <label>
+              Stellar username (7–22 chars, include a number)
+              <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+            </label>
+            <label>
+              Mobile number
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1..." required />
+            </label>
+          </>
         )}
         <label>
+          Email
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </label>
+        <label>
           Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={8} required />
         </label>
         {error && <p className="error">{error}</p>}
         <button type="submit" className="btn-primary" disabled={loading}>
@@ -116,8 +107,9 @@ function PaywallScreen({ user, onActivated }: { user: UserAccount; onActivated: 
     try {
       const b = await invoke<BillingStatus>("get_billing_status");
       setBilling(b);
-      if (!b.btcpay_configured) return;
-      setInvoice(await invoke<Invoice>("create_storage_invoice"));
+      if (b.btcpay_configured) {
+        setInvoice(await invoke<Invoice>("create_storage_invoice"));
+      }
     } catch (err) {
       setError(String(err));
     } finally {
@@ -132,56 +124,41 @@ function PaywallScreen({ user, onActivated }: { user: UserAccount; onActivated: 
   return (
     <div className="auth-screen">
       <div className="auth-card">
-        <h1>Activate 1 GB storage</h1>
-        <p>@{user.username} — contacts &amp; call history</p>
-        {billing && <p className="hint">BTCPay: {billing.btcpay_url}</p>}
-        {invoice && <p className="invoice-amt">${invoice.amount} {invoice.currency}</p>}
-        {error && <p className="error">{error}</p>}
-        {invoice && (
+        <h1>Activate storage ($9.99/mo)</h1>
+        <p>@{user.username} — unlock contacts, call history, and masked calling</p>
+        {billing?.btcpay_configured ? (
           <>
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => invoice && invoke("open_url", { url: invoice.checkout_link })}
-            >
-              Pay with Bitcoin
-            </button>
-            <button
-              type="button"
-              className="btn-secondary"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                try {
-                  onActivated(await invoke<UserAccount>("verify_and_activate_storage", { invoiceId: invoice.id }));
-                } catch (e) {
-                  setError(String(e));
-                } finally {
-                  setBusy(false);
-                }
-              }}
-            >
-              Verify payment
-            </button>
+            {invoice && <p className="invoice-amt">${invoice.amount} BTC</p>}
+            {invoice && (
+              <button type="button" className="btn-primary" onClick={() => invoke("open_url", { url: invoice.checkout_link })}>
+                Pay with Bitcoin (BTCPay)
+              </button>
+            )}
+            <p className="hint">Storage activates automatically when BTCPay confirms payment. You can also verify manually below.</p>
+            {invoice && (
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try {
+                    onActivated(await invoke<UserAccount>("verify_and_activate_storage", { invoiceId: invoice.id }));
+                  } catch (e) {
+                    setError(String(e));
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                Verify payment
+              </button>
+            )}
           </>
+        ) : (
+          <p className="hint">Configure PAYPHONE_BTCPAY_* in .env for live Bitcoin billing.</p>
         )}
-        <button
-          type="button"
-          className="btn-secondary"
-          disabled={busy}
-          onClick={async () => {
-            setBusy(true);
-            try {
-              onActivated(await invoke<UserAccount>("demo_activate_storage"));
-            } catch (e) {
-              setError(String(e));
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          Continue in demo mode
-        </button>
+        {error && <p className="error">{error}</p>}
       </div>
     </div>
   );
@@ -195,11 +172,15 @@ export default function App() {
   function afterSplash() {
     invoke<UserAccount | null>("get_session")
       .then((s) => {
+        if (!s?.access_token && !s?.username) {
+          setPhase("auth");
+          return;
+        }
         if (!s) {
           setPhase("auth");
           return;
         }
-        setUser(s);
+        setUser(s as UserAccount);
         setPhase(s.storage_paid ? "app" : "paywall");
       })
       .catch(() => setPhase("auth"));
@@ -217,6 +198,7 @@ export default function App() {
       <AuthScreen
         onSuccess={(u) => {
           setUser(u);
+          setSection("communications");
           setPhase(u.storage_paid ? "app" : "paywall");
         }}
       />
@@ -227,6 +209,7 @@ export default function App() {
         user={user}
         onActivated={(u) => {
           setUser(u);
+          setSection("communications");
           setPhase("app");
         }}
       />

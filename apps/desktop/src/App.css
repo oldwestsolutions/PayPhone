@@ -1,11 +1,24 @@
 :root {
-  --bg: #0c0c0c;
-  --sidebar: #111111;
-  --panel: #161616;
-  --border: #2a2a2a;
-  --text: #f5f5f5;
-  --muted: #9ca3af;
-  --accent: #ffffff;
+  --bg: #0a0a0b;
+  --sidebar: #111113;
+  --panel: #18181b;
+  --surface: #1f1f23;
+  --border: #2e2e33;
+  --text: #fafafa;
+  --muted: #a1a1aa;
+  --accent: #00d632;
+  --accent-dim: #00b82b;
+  --cash-green: #00d632;
+  --whatsapp-green: #25d366;
+  --imessage-blue: #0b84ff;
+  --imessage-gray: #3a3a3c;
+  --fiverr-green: #1dbf73;
+  --ring-blue: #0075c9;
+  --danger: #ff453a;
+  --warning: #ffd60a;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,8 +40,10 @@ body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); co
 .auth-card label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
 .auth-card input { padding: 10px; border: 1px solid var(--border); border-radius: 6px; background: #1a1a1a; color: var(--text); }
 
-.btn-primary { background: var(--accent); color: #000; border: none; border-radius: 6px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
-.btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px 16px; cursor: pointer; }
+.btn-primary { background: var(--cash-green); color: #000; border: none; border-radius: 999px; padding: 12px 20px; font-weight: 700; cursor: pointer; transition: transform 0.15s, opacity 0.15s; }
+.btn-primary:hover { transform: scale(1.02); opacity: 0.95; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 999px; padding: 10px 18px; cursor: pointer; font-weight: 600; }
 .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; }
 .error { color: #f87171; font-size: 13px; }
 .hint, .invoice-amt { font-size: 13px; color: var(--muted); }
@@ -141,3 +156,153 @@ body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); co
 .dialer .hint { text-align: center; max-width: 320px; font-size: 13px; color: var(--muted); }
 .dial-display { border-bottom: 1px solid var(--border) !important; padding-bottom: 8px; }
 .shell-main { scroll-behavior: smooth; }
+
+/* ─── Unified app chrome (Cash App + RingCentral) ─── */
+.app-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 24px; border-bottom: 1px solid var(--border);
+  background: rgba(17,17,19,0.95); backdrop-filter: blur(16px);
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar-balance { font-size: 15px; font-weight: 700; color: var(--cash-green); }
+.topbar-user { font-size: 13px; color: var(--muted); }
+.nav-warn { color: var(--warning); margin-left: 6px; font-weight: 700; }
+
+/* ─── Home feed ─── */
+.home-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.home-card {
+  background: linear-gradient(145deg, var(--surface), var(--panel));
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 20px; cursor: pointer; transition: border-color 0.2s, transform 0.15s;
+}
+.home-card:hover { border-color: var(--cash-green); transform: translateY(-2px); }
+.home-card h3 { font-size: 14px; color: var(--muted); font-weight: 500; margin-bottom: 8px; }
+.home-card .big { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; }
+.home-card.green .big { color: var(--cash-green); }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+.quick-chip {
+  padding: 10px 18px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.quick-chip:hover { border-color: var(--cash-green); color: var(--cash-green); }
+
+/* ─── Cash App wallet ─── */
+.wallet-hero {
+  background: linear-gradient(160deg, #00d632 0%, #00a828 50%, #007a1e 100%);
+  border-radius: var(--radius-lg); padding: 28px 24px; margin-bottom: 20px;
+  color: #000; box-shadow: var(--shadow);
+}
+.wallet-hero-label { font-size: 13px; font-weight: 600; opacity: 0.75; }
+.wallet-hero-amount { font-size: 48px; font-weight: 800; letter-spacing: -0.03em; margin: 8px 0 4px; }
+.wallet-hero-sub { font-size: 13px; opacity: 0.8; }
+.wallet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+.wallet-action-btn {
+  padding: 16px; border-radius: var(--radius); border: none;
+  background: var(--surface); color: var(--text); font-weight: 700; font-size: 15px; cursor: pointer;
+}
+.wallet-action-btn.send { background: var(--cash-green); color: #000; }
+.send-form {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 20px; margin-bottom: 20px;
+}
+.send-form input { width: 100%; padding: 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); margin-bottom: 10px; font-size: 16px; }
+.fee-hint { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+/* ─── iMessage / WhatsApp chat ─── */
+.chat-layout { display: flex; flex-direction: column; height: calc(100vh - 120px); max-height: 720px; }
+.chat-header {
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; background: var(--panel);
+}
+.chat-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--whatsapp-green), var(--imessage-blue));
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px;
+}
+.chat-thread { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--bg); }
+.bubble {
+  max-width: 75%; padding: 10px 14px; border-radius: 18px; font-size: 15px; line-height: 1.4;
+  position: relative;
+}
+.bubble.in { align-self: flex-start; background: var(--imessage-gray); border-bottom-left-radius: 4px; }
+.bubble.out { align-self: flex-end; background: var(--imessage-blue); color: #fff; border-bottom-right-radius: 4px; }
+.bubble-meta { font-size: 10px; opacity: 0.65; margin-top: 4px; }
+.chat-compose {
+  display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border); background: var(--panel);
+}
+.chat-compose input, .chat-compose textarea {
+  flex: 1; padding: 12px 16px; border-radius: 24px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text); resize: none;
+}
+.chat-compose button { border-radius: 50%; width: 44px; height: 44px; border: none; background: var(--whatsapp-green); color: #fff; font-size: 18px; cursor: pointer; flex-shrink: 0; }
+
+/* ─── Fiverr-style orders / escrow ─── */
+.order-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; margin-bottom: 12px; border-left: 4px solid var(--fiverr-green);
+}
+.order-card h4 { font-size: 15px; margin-bottom: 4px; }
+.order-meta { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.order-progress { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+.order-progress-fill { height: 100%; background: var(--fiverr-green); border-radius: 3px; transition: width 0.3s; }
+.order-status { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+.order-status.active { background: rgba(29,191,115,0.2); color: var(--fiverr-green); }
+.order-status.settled { background: rgba(0,214,50,0.15); color: var(--cash-green); }
+.order-status.draft { background: rgba(161,161,170,0.15); color: var(--muted); }
+
+/* ─── Procurement milestones ─── */
+.milestone-track { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+.milestone-step {
+  display: flex; gap: 12px; padding: 12px 0; border-left: 2px solid var(--border); margin-left: 10px; padding-left: 20px; position: relative;
+}
+.milestone-step::before {
+  content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--border);
+  position: absolute; left: -7px; top: 16px;
+}
+.milestone-step.done::before { background: var(--fiverr-green); }
+.milestone-step.done { border-left-color: var(--fiverr-green); }
+.milestone-step strong { display: block; font-size: 14px; }
+.milestone-step span { font-size: 12px; color: var(--muted); }
+
+/* ─── RingCentral dialer polish ─── */
+.dialer-rc { background: var(--panel); border-radius: var(--radius-lg); padding: 32px 24px; max-width: 360px; margin: 0 auto; border: 1px solid var(--border); }
+.dial-key { transition: background 0.15s, transform 0.1s; }
+.dial-key:active { transform: scale(0.95); background: var(--ring-blue); color: #fff; }
+.call-btn { background: var(--cash-green); box-shadow: 0 4px 20px rgba(0,214,50,0.35); }
+
+/* ─── Business revenue panel ─── */
+.revenue-hero {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 20px;
+}
+.revenue-hero h2 { font-size: 14px; color: var(--muted); font-weight: 500; }
+.revenue-hero .amount { font-size: 42px; font-weight: 800; color: var(--cash-green); }
+.revenue-breakdown { display: grid; gap: 10px; }
+.revenue-row { display: flex; justify-content: space-between; padding: 12px 16px; background: var(--panel); border-radius: var(--radius); border: 1px solid var(--border); }
+
+.panel-wide { max-width: 1100px; }
+
+/* ─── V6 Swap / routing ─── */
+.swap-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+.swap-grid label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); }
+.swap-grid select, .swap-grid input { padding: 10px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+.swap-full { grid-column: 1 / -1; }
+.swap-amount input { font-size: 22px; font-family: var(--font-mono, monospace); }
+.urgency-tabs { display: flex; gap: 8px; }
+.urgency-tabs button { flex: 1; padding: 8px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--panel); color: var(--muted); cursor: pointer; }
+.urgency-tabs button.active { background: var(--ring-blue); color: #fff; border-color: var(--ring-blue); }
+.route-preview { margin-top: 20px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--panel); }
+.route-steps { list-style: none; padding: 0; margin: 12px 0; }
+.route-steps li { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.fee-breakdown { margin: 12px 0; font-size: 14px; }
+.fee-breakdown p { margin: 4px 0; }
+.section-tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+.section-tabs button {
+  padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.section-tabs button.active { background: var(--cash-green); color: #000; border-color: var(--cash-green); }
+
+.shell-nav button.active { background: rgba(0,214,50,0.12); color: var(--cash-green); border-left: 3px solid var(--cash-green); }
+.auth-tabs button.active { background: var(--cash-green); color: #000; border-color: var(--cash-green); }
+.phone-tabs button.active { background: rgba(0,117,201,0.2); color: #6cb8ff; border-color: var(--ring-blue); }
